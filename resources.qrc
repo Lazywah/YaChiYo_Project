@@ -1,7 +1,8 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/res">
-        <file>images/characterAnimation/example.jpg</file>
-        <file>images/characterAnimation/example.gif</file>
+        <file>images/characterAnimation/normal.jpg</file>
+        <file>images/characterAnimation/catch.png</file>
+        <file>images/characterAnimation/normal.gif</file>
     </qresource>
 </RCC>

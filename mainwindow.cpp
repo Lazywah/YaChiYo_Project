@@ -23,33 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     setAttribute(Qt::WA_TranslucentBackground); // ZH: 將視窗背景設為透明 | EN: Set window background to transparent
 
-    // ZH: 設置靜態圖 | EN: Set static images
-    QPixmap pix(":res/images/characterAnimation/example.jpg");
-    pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
-    ui->label->setPixmap(pix);
-    ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
-    this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
+    loadImage("normal.jpg");    // ZH: 載入圖片 | EN: load image
 
-    // ZH: 設置動態圖 | EN: Set dynamic images
-    /*
-    QMovie *movie = new QMovie(":/res/images/characterAnimation/example.gif");
-    ui->label->setMovie(movie);
-
-    ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
-
-    // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
-    movie->jumpToFrame(0);
-    QSize movieSize = movie->currentImage().size();
-    ui->label->setFixedSize(movieSize);
-    this->setFixedSize(movieSize);
-
-    // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
-    movie->setScaledSize(QSize(256, 256));
-    ui->label->setFixedSize(256, 256);
-    this->setFixedSize(256, 256);
-
-    movie->start();
-    */
+    //loadAnimation("normal.gif");  // ZH: 載入動畫 | EN: load animation
 }
 
 // ZH: 宣告右鍵選單中的"關閉桌寵"事件 | EN: Declare event "Close Desktop Pet" in right-click menu
@@ -86,6 +62,38 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_UNUSED(event);
+}
+
+// ZH: 設置靜態圖 | EN: Set static images
+void MainWindow::loadImage(QString filename)
+{
+    QPixmap pix(imagePath + filename);
+    pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+    ui->label->setPixmap(pix);
+    ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
+    this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
+}
+
+// ZH: 設置動態圖 | EN: Set dynamic images
+void MainWindow::loadAnimation(QString filename)
+{
+    QMovie *movie = new QMovie(imagePath + filename);
+    ui->label->setMovie(movie);
+
+    ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
+
+    // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
+    movie->jumpToFrame(0);
+    QSize movieSize = movie->currentImage().size();
+    ui->label->setFixedSize(movieSize);
+    this->setFixedSize(movieSize);
+
+    // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
+    movie->setScaledSize(QSize(256, 256));
+    ui->label->setFixedSize(256, 256);
+    this->setFixedSize(256, 256);
+
+    movie->start();
 }
 
 MainWindow::~MainWindow()

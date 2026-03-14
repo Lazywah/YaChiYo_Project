@@ -29,9 +29,14 @@ protected:
     void mouseMoveEvent(QMouseEvent * event) override;
     void mouseReleaseEvent(QMouseEvent * event) override;
 
+    // ZH: 圖片 & 動畫載入流程 | EN: Image & Animation Loading Process
+    void loadImage(QString filename);
+    void loadAnimation(QString filename);
+
 private:
     Ui::MainWindow *ui;
-
+    // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
+    const QString imagePath = ":/res/images/characterAnimation/";
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;
 };
