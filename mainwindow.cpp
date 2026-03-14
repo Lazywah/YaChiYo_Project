@@ -43,8 +43,13 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        // ZH: 紀錄滑鼠點擊位置與視窗左上角的偏差值 | EN: record offset mouse click position to window Top Left
-        m_offset = event->globalPosition().toPoint() - this->pos();
+        // ZH: 點擊切換圖片 | EN: Click to switch image
+        loadImage("catch.png");
+        // ZH: 點擊切換動畫 | EN: Click to switch animation
+        //loadAnimation("catch.png");
+
+        // ZH: 滑鼠拖曳功能(紀錄初始點) | EN: Mouse drag function (record initial point)
+        m_offset = event->globalPosition().toPoint() - this->pos(); // ZH: 紀錄滑鼠點擊位置與視窗左上角的偏差值 | EN: record offset mouse click position to window Top Left
         event->accept();
     }
 }
@@ -61,7 +66,15 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
-    Q_UNUSED(event);
+    if (event->button() == Qt::LeftButton)
+    {
+        // ZH: 點擊切換圖片 | EN: Click to switch image
+        loadImage("normal.jpg");
+        // ZH: 點擊切換動畫 | EN: Click to switch animation
+        //loadAnimation("catch.png");
+    }
+
+    //Q_UNUSED(event);    // ZH: 僅用於消除因為撰寫函數邏輯的警告 | EN: Used only to eliminate warnings caused by writing function logic
 }
 
 // ZH: 設置靜態圖 | EN: Set static images
@@ -69,6 +82,7 @@ void MainWindow::loadImage(QString filename)
 {
     QPixmap pix(imagePath + filename);
     pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+
     ui->label->setPixmap(pix);
     ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
     this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
