@@ -4,6 +4,8 @@
 #include <QMenu>
 #include <QAction>
 #include <QContextMenuEvent>
+#include <QPixmap>              // ZH: 處理靜態圖 | EN: Processing static images
+#include <QMovie>               // ZH: 處理動態圖 | EN: Processing dynamic images
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,6 +22,34 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowFlags(flags);
 
     setAttribute(Qt::WA_TranslucentBackground); // ZH: 將視窗背景設為透明 | EN: Set window background to transparent
+
+    // ZH: 設置靜態圖 | EN: Set static images
+    QPixmap pix(":res/images/characterAnimation/example.jpg");
+    pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+    ui->label->setPixmap(pix);
+    ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
+    this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
+
+    // ZH: 設置動態圖 | EN: Set dynamic images
+    /*
+    QMovie *movie = new QMovie(":/res/images/characterAnimation/example.gif");
+    ui->label->setMovie(movie);
+
+    ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
+
+    // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
+    movie->jumpToFrame(0);
+    QSize movieSize = movie->currentImage().size();
+    ui->label->setFixedSize(movieSize);
+    this->setFixedSize(movieSize);
+
+    // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
+    movie->setScaledSize(QSize(256, 256));
+    ui->label->setFixedSize(256, 256);
+    this->setFixedSize(256, 256);
+
+    movie->start();
+    */
 }
 
 // ZH: 宣告右鍵選單中的"關閉桌寵"事件 | EN: Declare event "Close Desktop Pet" in right-click menu
