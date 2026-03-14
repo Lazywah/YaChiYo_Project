@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/res">
+        <file>images/characterAnimation/example.jpg</file>
+        <file>images/characterAnimation/example.gif</file>
+    </qresource>
+</RCC>
