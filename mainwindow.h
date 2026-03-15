@@ -32,12 +32,13 @@ private:
     QPoint m_offset;
     // ZH: 物理引擎變數與函數 | EN: Physics engine value and function
     QTimer *physicsTimer;
-    double velocityY = 0;           // ZH: 垂直速度 | EN: Vertical velocity
-    const double gravity = 0.8;     // ZH: 重力加速度 | EN: Gravitational acceleration
-    bool isGrounded = false;        // ZH: 在地面上(狀態) | EN: on the ground(status)
-    State currentState = Standing;  // ZH: 當前狀態 | EN: Current state
-    void applyGravity();            // ZH: 計算下落位移 | EN: Calculate the falling displacement
-    void checkGroundCollision();    // ZH: 螢幕底部偵測 | EN: Bottom Screen Detection
+    double velocityY = 0;               // ZH: 垂直速度 | EN: Vertical velocity
+    const double gravity = 0.8;         // ZH: 重力加速度 | EN: Gravitational acceleration
+    const double bounceFactor = -0.5;   // ZH: 回彈係數(負號代表反彈，0.5 代表回彈一半能量) | EN: Rebound coefficient (a negative sign indicates a rebound, 0.5 means that half of the energy is rebounded)
+    bool isGrounded = false;            // ZH: 在地面上(狀態) | EN: on the ground(status)
+    State currentState = Standing;      // ZH: 當前狀態 | EN: Current state
+    void applyGravity();                // ZH: 計算下落位移 | EN: Calculate the falling displacement
+    void checkGroundCollision();        // ZH: 螢幕底部偵測 | EN: Bottom Screen Detection
 
 protected:
     // ZH: 宣告右鍵選單事件 | EN: Declare right-click menu event

@@ -200,9 +200,18 @@ void MainWindow::checkGroundCollision()
     // ZH: 碰撞檢測邏輯 | EN: Collision detection logic
     if (this->y() >= groundY)   // ZH: 已經到達或超過地面 | EN: Have reached or exceeded the ground
     {
-        this->move(this->x(), groundY); // ZH: 強制對齊地板 | EN: Forced Alignment Floor
-        velocityY = 0;                  // ZH: 速度歸零 | EN: Speed ​​to zero
-        isGrounded = true;              // ZH: 標記為落地狀態 | EN: Marked as landed
+        if (qAbs(velocityY) > 1.5)  // ZH: 回彈功能 | EN: Rebound function
+        {
+            velocityY *= bounceFactor;          // ZH: 速度反轉並減半 | EN: Speed ​​reversed and halved
+            this->move(this->x(), groundY - 1); // ZH: 稍微往上移一些，避免卡在地板裡 | EN: Move it up slightly to avoid it getting stuck in the floor
+        }
+        else
+        {
+            // ZH: 速度太小時進入靜止狀態 | EN: When the speed is too low, it comes to a standstill
+            this->move(this->x(), groundY); // ZH: 強制對齊地板 | EN: Forced Alignment Floor
+            velocityY = 0;                  // ZH: 速度歸零 | EN: Speed ​​to zero
+            isGrounded = true;              // ZH: 標記為落地狀態 | EN: Marked as landed
+        }
     }
     else    // ZH: 未到達地面 | EN: Not reached the ground
     {
