@@ -152,6 +152,13 @@ void MainWindow::updatePhysics()
     switch (currentState)
     {
         case Standing:
+            // ZH: 當桌寵落地時，啟用 X 軸速度是桌寵行走並撞牆回彈 | EN: When the desktop pet lands, activating the X-axis speed will cause the desktop pet to walk and bounce back after hitting a wall
+            if (isGrounded)
+            {
+                this->move(this->x() + (int)velocityX, this->y());
+                checkBoundaryCollision();
+            }
+
             // ZH: 啟用重力使桌寵落地 | EN: Use gravity to make desktop pet land
             applyGravity();
             checkGroundCollision();
@@ -216,6 +223,30 @@ void MainWindow::checkGroundCollision()
     else    // ZH: 未到達地面 | EN: Not reached the ground
     {
         isGrounded = false;
+    }
+}
+
+void MainWindow::checkBoundaryCollision()
+{
+    // ZH: 獲取螢幕可用區域 | EN: Get screen available area
+    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+
+    // ZH: 獲取桌寵目前的 X 座標邊界 | EN: Get the current X coordinate boundaries of the desktop pet
+    int leftWall = screenRect.left();
+    int rightWall = screenRect.right() - this->width();
+
+    // ZH: 檢查左右邊界 | EN: Check left and right boundaries
+    if (this->x() <= leftWall)
+    {
+        // ZH: 撞到左邊界 | EN: Hit the left boundary
+        this->move(leftWall, this->y());    // ZH: 修正位置防止出界
+        velocityX *= wallBounceFactor;      // ZH: 反彈
+    }
+    else if (this->x() >= rightWall)
+    {
+        // ZH: 撞到右邊界 | EN: Hit the right boundary
+        this->move(rightWall, this->y());   // ZH: 修正位置防止出界
+        velocityX *= wallBounceFactor;      // ZH: 反彈
     }
 }
 
