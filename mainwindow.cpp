@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+#include <QMetaEnum>            // ZH: enum 型態轉換 | EN: enum type conversion
 #include <QMenu>                // ZH: 右鍵選單容器 | EN: Right-clock menu container
 #include <QAction>              // ZH: 選單動作項目 | EN: Menu actions
 #include <QContextMenuEvent>    // ZH: 右鍵點擊事件 | EN: Right-click event
@@ -82,6 +83,23 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     //Q_UNUSED(event);    // ZH: 僅用於消除因為撰寫函數邏輯的警告 | EN: Used only to eliminate warnings caused by writing function logic
 }
 
+void MainWindow::updatePetSkin()
+{
+    // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
+    QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
+    QString name = metaEnum.valueToKey(currentState);
+
+    switch(petSkinType)
+    {
+    case 0:
+        loadImage(name + ".png");
+        break;
+    case 1:
+        loadAnimation(name + ".gif");
+        break;
+    }
+}
+
 // ZH: 設置靜態圖 | EN: Set static images
 void MainWindow::loadImage(QString filename)
 {
@@ -125,8 +143,7 @@ void MainWindow::setState()
 {
     if (currentState == Standing)
     {
-        loadImage("Standing.png");
-        //loadAnimation("Standing.gif");
+        updatePetSkin();
     }
     else if (currentState == Flying)
     {
@@ -141,9 +158,7 @@ void MainWindow::setState()
     else if (currentState == Captured)
     {
         physicsTimer->stop();   // ZH: 停用物理引擎計時器 | EN: Disable physics engine timer
-
-        loadImage("Captured.png");
-        //loadAnimation("Captured.png");
+        updatePetSkin();
     }
 }
 
@@ -151,35 +166,35 @@ void MainWindow::updatePhysics()
 {
     switch (currentState)
     {
-        case Standing:
-            // ZH: 當桌寵落地時，啟用 X 軸速度是桌寵行走並撞牆回彈 | EN: When the desktop pet lands, activating the X-axis speed will cause the desktop pet to walk and bounce back after hitting a wall
-            if (isGrounded)
-            {
-                this->move(this->x() + (int)velocityX, this->y());
-                checkBoundaryCollision();
-            }
+    case Standing:
+        // ZH: 當桌寵落地時，啟用 X 軸速度是桌寵行走並撞牆回彈 | EN: When the desktop pet lands, activating the X-axis speed will cause the desktop pet to walk and bounce back after hitting a wall
+        if (isGrounded)
+        {
+            this->move(this->x() + (int)velocityX, this->y());
+            checkBoundaryCollision();
+        }
 
-            // ZH: 啟用重力使桌寵落地 | EN: Use gravity to make desktop pet land
-            applyGravity();
-            checkGroundCollision();
-            break;
+        // ZH: 啟用重力使桌寵落地 | EN: Use gravity to make desktop pet land
+        applyGravity();
+        checkGroundCollision();
+        break;
 
-        case Flying:
-            // ID: feat-1
-            // ZH: 未來新增功能 | EN: Future new features
-            // ZH: 關閉重力，執行位移邏輯，使桌寵前往滑鼠位置 | EN: Turn off gravity, execute displacement logic, and move the desktop pet to the mouse position
-            //moveToTarget();
-            break;
+    case Flying:
+        // ID: feat-1
+        // ZH: 未來新增功能 | EN: Future new features
+        // ZH: 關閉重力，執行位移邏輯，使桌寵前往滑鼠位置 | EN: Turn off gravity, execute displacement logic, and move the desktop pet to the mouse position
+        //moveToTarget();
+        break;
 
-        case Hovering:
-            // ID: feat-2
-            // ZH: 未來新增功能 | EN: Future new features
-            // ZH: 垂直速度設為 0，只做微小的上下浮動 (Sin Wave) | EN: The vertical velocity is set to 0, resulting in only a slight up-and-down fluctuation (Sin Wave)
-            //applyBovverEffect();
-            break;
+    case Hovering:
+        // ID: feat-2
+        // ZH: 未來新增功能 | EN: Future new features
+        // ZH: 垂直速度設為 0，只做微小的上下浮動 (Sin Wave) | EN: The vertical velocity is set to 0, resulting in only a slight up-and-down fluctuation (Sin Wave)
+        //applyBovverEffect();
+        break;
 
-        case Captured:
-            break;
+    case Captured:
+        break;
     }
 }
 

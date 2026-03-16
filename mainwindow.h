@@ -21,12 +21,14 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    // ZH: 桌寵狀態(事件)列表 | EN: Desktop pet status(event) list
+    enum State { Standing, Flying, Hovering, Captured };
+    Q_ENUM(State);  // ZH: 讓 Qt 記住名稱的字串形式 | EN: Let Qt remember the string form of the name
 
 private:
     Ui::MainWindow *ui;
-    // ZH: 桌寵狀態(事件)列表 | EN: Desktop pet status(event) list
-    enum State { Standing, Flying, Hovering, Captured };
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
+    int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
     const QString imagePath = ":/res/images/characterAnimation/";
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;
@@ -40,7 +42,7 @@ private:
     void applyGravity();                    // ZH: 計算下落位移 | EN: Calculate the falling displacement
     void checkGroundCollision();            // ZH: 螢幕邊緣偵測(底部) | EN: Screen edge detection (bottom)
     double velocityX = 5.0;                 // ZH: 水平速度(正值向右，負值向左) | EN: Horizontal velocity (positive values ​​to the right, negative values ​​to the left)
-    const double wallBounceFactor = -0.8;   // ZH: 水平回彈係數(負號代表反彈，0.8 代表回彈 80% 能量) | EN: Horizontal rebound coefficient (negative sign indicates rebound, 0.8 represents 80% energy rebound)
+    const double wallBounceFactor = -1;   // ZH: 水平回彈係數(負號代表反彈) | EN: Horizontal rebound coefficient (negative sign indicates rebound, 0.8 represents 80% energy rebound)
     void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection (left and right)
 
 protected:
@@ -53,6 +55,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent * event) override;
 
     // ZH: 圖片 & 動畫載入流程 | EN: Image & Animation loading process
+    void updatePetSkin();
     void loadImage(QString filename);
     void loadAnimation(QString filename);
 
