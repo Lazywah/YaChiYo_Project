@@ -125,8 +125,8 @@ void MainWindow::setState()
 {
     if (currentState == Standing)
     {
-        loadImage("normal.jpg");
-        //loadAnimation("normal.gif");
+        loadImage("Standing.png");
+        //loadAnimation("Standing.gif");
     }
     else if (currentState == Flying)
     {
@@ -142,8 +142,8 @@ void MainWindow::setState()
     {
         physicsTimer->stop();   // ZH: 停用物理引擎計時器 | EN: Disable physics engine timer
 
-        loadImage("catch.png");
-        //loadAnimation("catch.png");
+        loadImage("Captured.png");
+        //loadAnimation("Captured.png");
     }
 }
 
