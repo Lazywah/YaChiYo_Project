@@ -6,6 +6,8 @@
 #include <QMouseEvent>          // ZH: 處理滑鼠事件 | EN: Handling mouse events
 #include <QContextMenuEvent>    // ZH: 處理右鍵選單 | EN: Handling right-click menus
 
+#include "settingscenter.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -27,6 +29,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    SettingsCenter * settingsCenter;    // ZH: 宣告設定中心視窗指標 | EN: Announce settings center window pointer
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
     int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
     const QString imagePath = ":/res/images/characterAnimation/";

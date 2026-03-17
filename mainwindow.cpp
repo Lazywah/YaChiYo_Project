@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    settingsCenter = new SettingsCenter(this);  // ZH: 將設定中心設置為該視窗的子視窗 | EN: Set the settings center as a child window of this window
 
     // --> setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     Qt::WindowFlags flags = windowFlags();
@@ -39,12 +40,20 @@ MainWindow::MainWindow(QWidget *parent)
 
 //===============================================================================================
 
-// ZH: 宣告右鍵選單中的"關閉桌寵"事件 | EN: Declare event "Close Desktop Pet" in right-click menu
+// ZH: 宣告右鍵選單中的事件 | EN: Declare event in right-click menu
 void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu(this);
-    QAction *closeAction = menu.addAction("關閉桌寵");
 
+    // ZH: 設定中心 | EN: Settings center
+    QAction *settingsAction = menu.addAction("設定中心");
+    connect(settingsAction, &QAction::triggered, this, [this]()
+    {
+        settingsCenter->showWindow();
+    });
+
+    // ZH: 關閉桌寵 | EN: Close desktop pet
+    QAction *closeAction = menu.addAction("關閉桌寵");
     connect(closeAction, &QAction::triggered, this, &MainWindow::close);
 
     menu.exec(event->globalPos());
