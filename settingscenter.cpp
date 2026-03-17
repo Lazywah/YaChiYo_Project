@@ -11,14 +11,26 @@ SettingsCenter::SettingsCenter(QWidget *parent)
     ui->setupUi(this);
 }
 
+//===============================================================================================
+
+//===============================================================================================
+
 void SettingsCenter::showWindow()
 {
     // ZH: 將視窗移至螢幕中央
     QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();   // ZH: 獲取當前主螢幕尺寸（排除工作列後）
+
+    //int x = (screenGeometry.width() - this->width()) / 2 + screenGeometry.left();
+    //int y = (screenGeometry.height() - this->height()) / 2 + screenGeometry.top();
+    //this->move(x, y);
     this->move(screenGeometry.center() - this->rect().center());
     this->show();
     this->activateWindow();   // ZH: 使視窗保持在最上層 | EN: Keep the window on top
 }
+
+//===============================================================================================
+
+//===============================================================================================
 
 SettingsCenter::~SettingsCenter()
 {
