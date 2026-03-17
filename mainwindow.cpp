@@ -31,9 +31,9 @@ MainWindow::MainWindow(QWidget *parent)
     setAttribute(Qt::WA_TranslucentBackground); // ZH: 將視窗背景設為透明 | EN: Set window background to transparent
 
     physicsTimer = new QTimer(this);                                            // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
-    connect(physicsTimer, &QTimer::timeout, this, &MainWindow::timerProcess);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed.
+    connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed.
     physicsTimer->start(16);                                                    // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
-    currentState = Standing;
+    setState(Standing);
 }
 
 //===============================================================================================
@@ -63,7 +63,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        currentState = Captured;
+        setState(Captured);
 
         // ZH: 滑鼠拖曳功能(紀錄初始點) | EN: Mouse drag function (record initial point)
         m_offset = event->globalPosition().toPoint() - this->pos(); // ZH: 紀錄滑鼠點擊位置與視窗左上角的偏差值 | EN: record offset mouse click position to window Top Left
@@ -85,7 +85,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        currentState = Standing;
+        setState(Standing);
         physicsTimer->start(16);    // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
     }
 
@@ -142,14 +142,10 @@ void MainWindow::loadAnimation(QString filename)
     movie->start();
 }
 
-void MainWindow::timerProcess()
+void MainWindow::setState(MainWindow::State nextState)
 {
-    updatePhysics();
-    setState();
-}
+    currentState = nextState;
 
-void MainWindow::setState()
-{
     if (currentState == Standing)
     {
         updatePetSkin();

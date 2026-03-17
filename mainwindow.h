@@ -62,10 +62,8 @@ protected:
     void loadImage(QString filename);
     void loadAnimation(QString filename);
 
-    // ZH: 時間刻內流程 | EN: Time-bound process
-    void timerProcess();
     // ZH: 狀態設定流程 | EN: Status setting process
-    void setState();
+    void setState(MainWindow::State nextState);
     // ZH: 物理引擎流程 | EN: Physics engine process
     void updatePhysics();
 };
