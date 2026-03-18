@@ -47,6 +47,11 @@ private:
     double velocityX = 5.0;                 // ZH: 水平速度(正值向右，負值向左) | EN: Horizontal velocity (positive values ​​to the right, negative values ​​to the left)
     const double wallBounceFactor = -1;   // ZH: 水平回彈係數(負號代表反彈) | EN: Horizontal rebound coefficient (negative sign indicates rebound, 0.8 represents 80% energy rebound)
     void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection (left and right)
+    // ZH: 行動邏輯 | EN: Action Logic
+    QTimer *behaviorTimer;      // ZH: 用於計時幾秒思考一次下一次行動 | EN: Used to time a few seconds to consider the next action
+    int walkSteps = 0;          // ZH: 行走步數(控制行走時間) | EN: Walking steps(controlling walking time)
+    double walkSpeed = 2.0;     // ZH: 行走速度 | EN: Walking Speed
+    void decideNextAction();    // ZH: 行動決策邏輯 | EN: Action Decision Logic
 
 protected:
     // ZH: 宣告右鍵選單事件 | EN: Declare right-click menu event

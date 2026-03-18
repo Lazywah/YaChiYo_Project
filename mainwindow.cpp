@@ -10,6 +10,7 @@
 #include <QScreen>              // ZH: 獲取螢幕資訊 | EN: Get screen information
 #include <QGuiApplication>      // ZH: 監聽螢幕變化 | EN: Listen to screen changes
 #include <QTimer>
+#include <QRandomGenerator>     // ZH: 生成隨機數 | EN: Generate random numbers
 
 //===============================================================================================
 
@@ -30,10 +31,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     setAttribute(Qt::WA_TranslucentBackground); // ZH: 將視窗背景設為透明 | EN: Set window background to transparent
 
-    physicsTimer = new QTimer(this);                                            // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
-    connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed.
-    physicsTimer->start(16);                                                    // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
+    physicsTimer = new QTimer(this);                                                // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
+    connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);      // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
+    physicsTimer->start(16);                                                        // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
     setState(Standing);
+
+    behaviorTimer = new QTimer(this);                                               // ZH: 初始化行動決策計時器 | EN: Initialize action decision timer
+    connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);  // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
+    behaviorTimer->start(3000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
 }
 
 //===============================================================================================
@@ -172,16 +177,23 @@ void MainWindow::updatePhysics()
     switch (currentState)
     {
     case Standing:
-        // ZH: 當桌寵落地時，啟用 X 軸速度是桌寵行走並撞牆回彈 | EN: When the desktop pet lands, activating the X-axis speed will cause the desktop pet to walk and bounce back after hitting a wall
-        if (isGrounded)
+        // ZH: 水平移動邏輯 | EN: Horizontal movement logic
+        if (isGrounded) // ZH: 落地後才可移動 | EN: only move after landing
         {
-            this->move(this->x() + (int)velocityX, this->y());
-            checkBoundaryCollision();
+            if (walkSteps > 0)  // ZH: 不可用 while loop 因為這是計時器邏輯，將會重複執行 | EN: The while loop is not usable because it's timer logic and will execute repeatedly
+            {
+                this->move(this->x() + (int)velocityX, this->y());
+                checkBoundaryCollision();   // ZH: 撞牆偵測 | EN: Wall collision detection
+                walkSteps--;
+
+                if (walkSteps == 0)
+                    velocityX = 0;  // ZH: 停止移動 | EN: Stop Moving
+            }
         }
 
         // ZH: 啟用重力使桌寵落地 | EN: Use gravity to make desktop pet land
-        applyGravity();
-        checkGroundCollision();
+        applyGravity();             // ZH: 計算重力加速度 | EN: Calculate gravitational acceleration
+        checkGroundCollision();     // ZH: 落地偵測 | EN: Landing detection
         break;
 
     case Flying:
@@ -267,6 +279,35 @@ void MainWindow::checkBoundaryCollision()
         // ZH: 撞到右邊界 | EN: Hit the right boundary
         this->move(rightWall, this->y());   // ZH: 修正位置防止出界
         velocityX *= wallBounceFactor;      // ZH: 反彈
+    }
+}
+
+void MainWindow::decideNextAction()
+{
+    if (currentState == Captured)   // ZH: 確定當前未被捕捉 | EN: Determined not currently being captured
+    {
+        walkSteps = 0;  // ZH: 清空行動步數 | EN: Clear action steps
+        velocityX = 0;
+        return;
+    }
+
+    int roll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
+
+    if (roll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
+    {
+        // ZH: 隨機移動方向(-1 向左，1 向右) | EN: Random movement direction (-1 to the left, 1 to the right)
+        int direction = (QRandomGenerator::global()->bounded(2) == 0)? -1 : 1;
+        velocityX = direction * walkSpeed;
+
+        walkSteps = 150;    // ZH: 設定移動持續時間(150影格) | EN: Set movement duration(150 frames)
+
+        setState(Standing);
+    }
+    else    // ZH: 40% 原地站定 | EN: 40% standing
+    {
+        velocityX = 0;
+        walkSteps = 0;
+        setState(Standing);
     }
 }
 
