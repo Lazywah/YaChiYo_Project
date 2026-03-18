@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     behaviorTimer = new QTimer(this);                                               // ZH: 初始化行動決策計時器 | EN: Initialize action decision timer
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);  // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
-    behaviorTimer->start(3000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
+    behaviorTimer->start(5000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
 }
 
 //===============================================================================================
@@ -99,26 +99,38 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void MainWindow::updatePetSkin()
 {
-    // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
-    QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
-    QString name = metaEnum.valueToKey(currentState);
-
     switch(petSkinType)
     {
     case 0:
-        loadImage(name + ".png");
+        loadImage();
         break;
     case 1:
-        loadAnimation(name + ".gif");
+        loadAnimation();
         break;
     }
 }
 
 // ZH: 設置靜態圖 | EN: Set static images
-void MainWindow::loadImage(QString filename)
+void MainWindow::loadImage(int setNumber)
 {
-    QPixmap pix(imagePath + filename);
-    pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+    // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
+    QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
+    QString filename = metaEnum.valueToKey(currentState);
+    QPixmap pix;
+    // ID: fix-1
+    // fix: 邏輯可優化
+    // if 內條件不夠通用，可考慮使用額外 boolean flag 作為 turnImageSet() 的起用開關
+    if (currentState == Walking)
+    {
+        filename += "-" + QString("%1").arg(setNumber);
+        pix = QPixmap(testImageSetPath + "Walking/" + filename + ".png");
+        pix = pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    else
+    {
+        pix = QPixmap(imagePath + filename + ".png");
+        pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+    }
 
     ui->label->setPixmap(pix);
     ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
@@ -126,9 +138,12 @@ void MainWindow::loadImage(QString filename)
 }
 
 // ZH: 設置動態圖 | EN: Set dynamic images
-void MainWindow::loadAnimation(QString filename)
+void MainWindow::loadAnimation()
 {
-    QMovie *movie = new QMovie(imagePath + filename);
+    // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
+    QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
+    QString filename = metaEnum.valueToKey(currentState);
+    QMovie *movie = new QMovie(imagePath + filename + ".gif");
     ui->label->setMovie(movie);
 
     ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
@@ -155,6 +170,12 @@ void MainWindow::setState(MainWindow::State nextState)
     {
         updatePetSkin();
     }
+    else if (currentState == Walking)
+    {
+        // ID: fix-2
+        // fix: 些微耦合，後期需重整
+        loadImage(currentSetNumber);
+    }
     else if (currentState == Flying)
     {
         // ID: feat-1
@@ -177,6 +198,12 @@ void MainWindow::updatePhysics()
     switch (currentState)
     {
     case Standing:
+        // ZH: 啟用重力使桌寵落地 | EN: Use gravity to make desktop pet land
+        applyGravity();             // ZH: 計算重力加速度 | EN: Calculate gravitational acceleration
+        checkGroundCollision();     // ZH: 落地偵測 | EN: Landing detection
+        break;
+
+    case Walking:
         // ZH: 水平移動邏輯 | EN: Horizontal movement logic
         if (isGrounded) // ZH: 落地後才可移動 | EN: only move after landing
         {
@@ -187,7 +214,12 @@ void MainWindow::updatePhysics()
                 walkSteps--;
 
                 if (walkSteps == 0)
+                {
                     velocityX = 0;  // ZH: 停止移動 | EN: Stop Moving
+                    imageSwitchTimer->stop();   // ZH: 暫停圖像集切換計時器 | EN: Disable image set switching timer
+                    currentSetNumber = 0;
+                    setState(Standing);
+                }
             }
         }
 
@@ -282,26 +314,39 @@ void MainWindow::checkBoundaryCollision()
     }
 }
 
+void MainWindow::turnImageSet()
+{
+    currentSetNumber = currentSetNumber % 6 + 1;
+    loadImage(currentSetNumber);
+}
+
 void MainWindow::decideNextAction()
 {
     if (currentState == Captured)   // ZH: 確定當前未被捕捉 | EN: Determined not currently being captured
     {
-        walkSteps = 0;  // ZH: 清空行動步數 | EN: Clear action steps
+        imageSwitchTimer->stop();   // ZH: 暫停圖像集切換計時器 | EN: Disable image set switching timer
+        currentSetNumber = 0;
+        walkSteps = 0;              // ZH: 清空行動步數 | EN: Clear action steps
         velocityX = 0;
         return;
     }
 
     int roll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
 
-    if (roll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
+    if (roll < 100)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
     {
         // ZH: 隨機移動方向(-1 向左，1 向右) | EN: Random movement direction (-1 to the left, 1 to the right)
         int direction = (QRandomGenerator::global()->bounded(2) == 0)? -1 : 1;
         velocityX = direction * walkSpeed;
 
-        walkSteps = 150;    // ZH: 設定移動持續時間(150影格) | EN: Set movement duration(150 frames)
+        walkSteps = QRandomGenerator::global()->bounded(120)+90;    // ZH: 設定移動持續時間(90~210影格) | EN: Set movement duration(90~210 frames)
 
-        setState(Standing);
+        imageSwitchTimer = new QTimer;  // ZH: 啟用圖像集切換計時器 | EN: Enable image set switching timer
+        currentSetNumber = 1;           // ZH: 初始化圖像轉換記數 | EN: Initialize image conversion counters
+        connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);
+        imageSwitchTimer->start(333);
+
+        setState(Walking);
     }
     else    // ZH: 40% 原地站定 | EN: 40% standing
     {

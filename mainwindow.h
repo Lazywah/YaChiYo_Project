@@ -24,7 +24,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     // ZH: 桌寵狀態(事件)列表 | EN: Desktop pet status(event) list
-    enum State { Standing, Flying, Hovering, Captured };
+    enum State { Standing, Walking, Flying, Hovering, Captured };
     Q_ENUM(State);  // ZH: 讓 Qt 記住名稱的字串形式 | EN: Let Qt remember the string form of the name
 
 private:
@@ -33,6 +33,7 @@ private:
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
     int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
     const QString imagePath = ":/res/images/characterAnimation/";
+    const QString testImageSetPath = ":/res/images/testImageSet/";
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;
     // ZH: 物理引擎變數與函數 | EN: Physics engine value and function
@@ -49,6 +50,9 @@ private:
     void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection (left and right)
     // ZH: 行動邏輯 | EN: Action Logic
     QTimer *behaviorTimer;      // ZH: 用於計時幾秒思考一次下一次行動 | EN: Used to time a few seconds to consider the next action
+    QTimer *imageSwitchTimer;   // ZH: 用於計時圖片切換頻率 | EN: Used to time image switching frequency
+    int currentSetNumber;       // ZH: 用於紀錄要輪到哪張圖片 | EN: Used to record which image is next
+    void turnImageSet();        // ZH: 用於控制 currentSetNumber 並轉換圖片 | EN: Used to control currentSetNumber and transform images
     int walkSteps = 0;          // ZH: 行走步數(控制行走時間) | EN: Walking steps(controlling walking time)
     double walkSpeed = 2.0;     // ZH: 行走速度 | EN: Walking Speed
     void decideNextAction();    // ZH: 行動決策邏輯 | EN: Action Decision Logic
@@ -64,8 +68,8 @@ protected:
 
     // ZH: 圖片 & 動畫載入流程 | EN: Image & Animation loading process
     void updatePetSkin();
-    void loadImage(QString filename);
-    void loadAnimation(QString filename);
+    void loadImage(int setNumber = 0);
+    void loadAnimation();
 
     // ZH: 狀態設定流程 | EN: Status setting process
     void setState(MainWindow::State nextState);

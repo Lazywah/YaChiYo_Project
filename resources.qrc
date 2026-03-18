@@ -3,6 +3,14 @@
     <qresource prefix="/res">
         <file>images/characterAnimation/Standing.png</file>
         <file>images/characterAnimation/Captured.png</file>
+
         <file>images/characterAnimation/Captured.gif</file>
+
+        <file>images/testImageSet/Walking/Walking-1.png</file>
+        <file>images/testImageSet/Walking/Walking-2.png</file>
+        <file>images/testImageSet/Walking/Walking-3.png</file>
+        <file>images/testImageSet/Walking/Walking-4.png</file>
+        <file>images/testImageSet/Walking/Walking-5.png</file>
+        <file>images/testImageSet/Walking/Walking-6.png</file>
     </qresource>
 </RCC>
