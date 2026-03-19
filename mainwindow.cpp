@@ -124,6 +124,12 @@ void MainWindow::updatePetSkin(int setNumber)
         pix.load(imagePath + stateName + ".png");
     }
 
+    // ZH: 處理水平翻轉 | EN: Handling horizontal flipping
+    if (velocityX < 0)
+    {
+        pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
+    }
+
     ui->label->setPixmap(pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     ui->label->adjustSize();
     this->adjustSize();
