@@ -34,11 +34,17 @@ MainWindow::MainWindow(QWidget *parent)
     physicsTimer = new QTimer(this);                                                // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
     connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);      // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
     physicsTimer->start(16);                                                        // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
-    setState(Standing);
 
     behaviorTimer = new QTimer(this);                                               // ZH: 初始化行動決策計時器 | EN: Initialize action decision timer
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);  // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
     behaviorTimer->start(5000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
+
+    animConfigs[Walking] = {6, 150};
+
+    imageSwitchTimer = new QTimer;                                                  // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
+    connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
+
+    setState(Standing);
 }
 
 //===============================================================================================
@@ -97,100 +103,92 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     //Q_UNUSED(event);    // ZH: 僅用於消除因為撰寫函數邏輯的警告 | EN: Used only to eliminate warnings caused by writing function logic
 }
 
-void MainWindow::updatePetSkin()
-{
-    switch(petSkinType)
-    {
-    case 0:
-        loadImage();
-        break;
-    case 1:
-        loadAnimation();
-        break;
-    }
-}
-
-// ZH: 設置靜態圖 | EN: Set static images
-void MainWindow::loadImage(int setNumber)
+void MainWindow::updatePetSkin(int setNumber)
 {
     // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
     QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
-    QString filename = metaEnum.valueToKey(currentState);
+    QString stateName = metaEnum.valueToKey(currentState);
     QPixmap pix;
-    // ID: fix-1
-    // fix: 邏輯可優化
-    // if 內條件不夠通用，可考慮使用額外 boolean flag 作為 turnImageSet() 的起用開關
-    if (currentState == Walking)
+
+    // ZH: 判斷是否要讀取序列幀 | EN: Determine whether to read the sequence frame
+    if (animConfigs.contains(currentState) && currentSetNumber > 0)
     {
-        filename += "-" + QString("%1").arg(setNumber);
-        pix = QPixmap(testImageSetPath + "Walking/" + filename + ".png");
-        pix = pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QString path = QString("%1%2/%2-%3.png")
+                        .arg(testImageSetPath)
+                        .arg(stateName)
+                        .arg(currentSetNumber);
+        pix.load(path);
     }
     else
     {
-        pix = QPixmap(imagePath + filename + ".png");
-        pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+        pix.load(imagePath + stateName + ".png");
     }
 
-    ui->label->setPixmap(pix);
-    ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
-    this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
+    ui->label->setPixmap(pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    ui->label->adjustSize();
+    this->adjustSize();
 }
+
+// ZH: 設置靜態圖 | EN: Set static images
+// void MainWindow::loadImage(QString filename, int setNumber)
+// {
+//     QPixmap pix = QPixmap(imagePath + filename + ".png")
+//     pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
+
+//     ui->label->setPixmap(pix);
+//     ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
+//     this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
+// }
 
 // ZH: 設置動態圖 | EN: Set dynamic images
-void MainWindow::loadAnimation()
-{
-    // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
-    QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
-    QString filename = metaEnum.valueToKey(currentState);
-    QMovie *movie = new QMovie(imagePath + filename + ".gif");
-    ui->label->setMovie(movie);
+// void MainWindow::loadAnimation(QString filename)
+// {
+//     ui->label->setMovie(movie);
 
-    ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
+//     ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
 
-    // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
-    movie->jumpToFrame(0);
-    QSize movieSize = movie->currentImage().size();
-    ui->label->setFixedSize(movieSize);
-    this->setFixedSize(movieSize);
+//     // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
+//     movie->jumpToFrame(0);
+//     QSize movieSize = movie->currentImage().size();
+//     ui->label->setFixedSize(movieSize);
+//     this->setFixedSize(movieSize);
 
-    // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
-    movie->setScaledSize(QSize(256, 256));
-    ui->label->setFixedSize(256, 256);
-    this->setFixedSize(256, 256);
+//     // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
+//     movie->setScaledSize(QSize(256, 256));
+//     ui->label->setFixedSize(256, 256);
+//     this->setFixedSize(256, 256);
 
-    movie->start();
-}
+//     movie->start();
+// }
 
 void MainWindow::setState(MainWindow::State nextState)
 {
+    if (currentState == nextState)
+        return;
+
     currentState = nextState;
 
-    if (currentState == Standing)
+    // ZH: 重置動畫狀態 | EN: Reset animation state
+    imageSwitchTimer->stop();
+    currentSetNumber = 0;
+
+    // ZH: 若新狀態有動畫則啟動計時器 | EN: If the new state has an animation, start the timer.
+    if (animConfigs.contains(currentState))
     {
-        updatePetSkin();
+        currentSetNumber = 1;
+        imageSwitchTimer->start(animConfigs[currentState].intervalMs);
     }
-    else if (currentState == Walking)
+
+    switch (currentState)
     {
-        // ID: fix-2
-        // fix: 些微耦合，後期需重整
-        loadImage(currentSetNumber);
+    case Captured:
+        physicsTimer->stop();
+        break;
+    default:
+        break;
     }
-    else if (currentState == Flying)
-    {
-        // ID: feat-1
-        // ZH: 未來新增功能 | EN: Future new features
-    }
-    else if (currentState == Hovering)
-    {
-        // ID: feat-2
-        // ZH: 未來新增功能 | EN: Future new features
-    }
-    else if (currentState == Captured)
-    {
-        physicsTimer->stop();   // ZH: 停用物理引擎計時器 | EN: Disable physics engine timer
-        updatePetSkin();
-    }
+
+    updatePetSkin();
 }
 
 void MainWindow::updatePhysics()
@@ -215,9 +213,7 @@ void MainWindow::updatePhysics()
 
                 if (walkSteps == 0)
                 {
-                    velocityX = 0;  // ZH: 停止移動 | EN: Stop Moving
-                    imageSwitchTimer->stop();   // ZH: 暫停圖像集切換計時器 | EN: Disable image set switching timer
-                    currentSetNumber = 0;
+                    velocityX = 0;              // ZH: 停止移動 | EN: Stop Moving
                     setState(Standing);
                 }
             }
@@ -316,13 +312,19 @@ void MainWindow::checkBoundaryCollision()
 
 void MainWindow::turnImageSet()
 {
-    currentSetNumber = currentSetNumber % 6 + 1;
-    loadImage(currentSetNumber);
+    if (!animConfigs.contains(currentState))
+        return;
+
+    int total = animConfigs[currentState].totalFrames;
+    currentSetNumber = (currentSetNumber % total) + 1;
+
+    updatePetSkin();
 }
 
 void MainWindow::decideNextAction()
 {
-    if (currentState == Captured)   // ZH: 確定當前未被捕捉 | EN: Determined not currently being captured
+    // ZH: 若被抓取中，強制停止所有行動與動畫 | EN: If captured, all actions and animations will be forcibly stopped.
+    if (currentState == Captured)
     {
         imageSwitchTimer->stop();   // ZH: 暫停圖像集切換計時器 | EN: Disable image set switching timer
         currentSetNumber = 0;
@@ -331,20 +333,27 @@ void MainWindow::decideNextAction()
         return;
     }
 
+    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+    int usableWidth = screenRect.width() - this->width();
+    // ZH: 計算目前的 X 座標相對於螢幕可用區域的比例(0.0 為最左，1.0 為最右) | EN: Calculate the current X coordinate relative to the available screen area (0.0 is the leftmost, 1.0 is the rightmost)
+    double positionRatio = static_cast<double>(this->x() - screenRect.left()) / usableWidth;
+
     int roll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
 
-    if (roll < 100)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
+    if (roll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
     {
-        // ZH: 隨機移動方向(-1 向左，1 向右) | EN: Random movement direction (-1 to the left, 1 to the right)
-        int direction = (QRandomGenerator::global()->bounded(2) == 0)? -1 : 1;
+        double rightProb = 1.0 - positionRatio; // 往右的機率隨位置線性調整
+        double dirRoll = QRandomGenerator::global()->generateDouble(); // 生成 0.0 ~ 1.0 的隨機數
+
+        int direction;
+        if (dirRoll < rightProb)
+            direction = 1;
+        else
+            direction = -1;
+
+        // ZH: 設定移動參數
         velocityX = direction * walkSpeed;
-
-        walkSteps = QRandomGenerator::global()->bounded(120)+90;    // ZH: 設定移動持續時間(90~210影格) | EN: Set movement duration(90~210 frames)
-
-        imageSwitchTimer = new QTimer;  // ZH: 啟用圖像集切換計時器 | EN: Enable image set switching timer
-        currentSetNumber = 1;           // ZH: 初始化圖像轉換記數 | EN: Initialize image conversion counters
-        connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);
-        imageSwitchTimer->start(333);
+        walkSteps = QRandomGenerator::global()->bounded(120) + 90; // 隨機步數 90~210
 
         setState(Walking);
     }
