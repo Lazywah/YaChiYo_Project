@@ -38,12 +38,18 @@ private:
     Ui::MainWindow *ui;
     SettingsCenter * settingsCenter;    // ZH: 宣告設定中心視窗指標 | EN: Announce settings center window pointer
 
+    // ZH: 狀態設定流程 | EN: Status setting process
+    void setState(MainWindow::State nextState);
+
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
     int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
     const QString imagePath = ":/res/images/characterAnimation/";
     const QString testImageSetPath = ":/res/images/testImageSet/";
     QMap<State, AnimationConfig> animConfigs;   // ZH: 狀態與配置對照表
     void initAnimationConfigs();                // ZH: 初始化函數
+    void updatePetSkin(int setNumber = 0);
+    // void loadImage(QString filename, int setNumber = 0);
+    // void loadAnimation(QString filename);
 
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;
@@ -60,6 +66,8 @@ private:
     double velocityX = 5.0;                 // ZH: 水平速度(正值向右，負值向左) | EN: Horizontal velocity (positive values ​​to the right, negative values ​​to the left)
     const double wallBounceFactor = -1;   // ZH: 水平回彈係數(負號代表反彈) | EN: Horizontal rebound coefficient (negative sign indicates rebound, 0.8 represents 80% energy rebound)
     void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection (left and right)
+    // ZH: 物理引擎流程 | EN: Physics engine process
+    void updatePhysics();
 
     // ZH: 行動邏輯 | EN: Action Logic
     QTimer *behaviorTimer;      // ZH: 用於計時幾秒思考一次下一次行動 | EN: Used to time a few seconds to consider the next action
@@ -78,15 +86,5 @@ protected:
     void mousePressEvent(QMouseEvent * event) override;
     void mouseMoveEvent(QMouseEvent * event) override;
     void mouseReleaseEvent(QMouseEvent * event) override;
-
-    // ZH: 圖片 & 動畫載入流程 | EN: Image & Animation loading process
-    void updatePetSkin(int setNumber = 0);
-    void loadImage(QString filename, int setNumber = 0);
-    // void loadAnimation(QString filename);
-
-    // ZH: 狀態設定流程 | EN: Status setting process
-    void setState(MainWindow::State nextState);
-    // ZH: 物理引擎流程 | EN: Physics engine process
-    void updatePhysics();
 };
 #endif // MAINWINDOW_H

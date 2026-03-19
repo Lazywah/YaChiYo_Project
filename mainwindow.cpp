@@ -305,14 +305,14 @@ void MainWindow::checkBoundaryCollision()
     if (this->x() <= leftWall)
     {
         // ZH: 撞到左邊界 | EN: Hit the left boundary
-        this->move(leftWall, this->y());    // ZH: 修正位置防止出界
-        velocityX *= wallBounceFactor;      // ZH: 反彈
+        this->move(leftWall, this->y());    // ZH: 修正位置防止出界 | EN: Correct the position to prevent it from going out of bounds
+        velocityX *= wallBounceFactor;      // ZH: 反彈 | EN: rebound
     }
     else if (this->x() >= rightWall)
     {
         // ZH: 撞到右邊界 | EN: Hit the right boundary
-        this->move(rightWall, this->y());   // ZH: 修正位置防止出界
-        velocityX *= wallBounceFactor;      // ZH: 反彈
+        this->move(rightWall, this->y());   // ZH: 修正位置防止出界 | EN: Correct the position to prevent it from going out of bounds
+        velocityX *= wallBounceFactor;      // ZH: 反彈 | EN: rebound
     }
 }
 
@@ -348,8 +348,8 @@ void MainWindow::decideNextAction()
 
     if (roll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
     {
-        double rightProb = 1.0 - positionRatio; // 往右的機率隨位置線性調整
-        double dirRoll = QRandomGenerator::global()->generateDouble(); // 生成 0.0 ~ 1.0 的隨機數
+        double rightProb = 1.0 - positionRatio; // ZH: 往右的機率隨位置線性調整 | EN: The probability of going right is linearly adjusted with position
+        double dirRoll = QRandomGenerator::global()->generateDouble(); // ZH: 生成 0.0 ~ 1.0 的隨機數 | EN: Generate random numbers between 0.0 and 1.0
 
         int direction;
         if (dirRoll < rightProb)
@@ -357,9 +357,9 @@ void MainWindow::decideNextAction()
         else
             direction = -1;
 
-        // ZH: 設定移動參數
+        // ZH: 設定移動參數 | EN: Set movement parameters
         velocityX = direction * walkSpeed;
-        walkSteps = QRandomGenerator::global()->bounded(120) + 90; // 隨機步數 90~210
+        walkSteps = QRandomGenerator::global()->bounded(120) + 90; // ZH: 隨機步數 90~210 | EN: Random number of steps: 90~210
 
         setState(Walking);
     }
