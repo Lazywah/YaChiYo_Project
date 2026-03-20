@@ -62,12 +62,14 @@ private:
     bool isGrounded = false;                // ZH: 在地面上(狀態) | EN: on the ground(status)
     State currentState = Captured;          // ZH: 當前狀態 | EN: Current state
     void applyGravity();                    // ZH: 計算下落位移 | EN: Calculate the falling displacement
-    void checkGroundCollision();            // ZH: 螢幕邊緣偵測(底部) | EN: Screen edge detection (bottom)
-    double velocityX = 5.0;                 // ZH: 水平速度(正值向右，負值向左) | EN: Horizontal velocity (positive values ​​to the right, negative values ​​to the left)
-    const double wallBounceFactor = -1;   // ZH: 水平回彈係數(負號代表反彈) | EN: Horizontal rebound coefficient (negative sign indicates rebound, 0.8 represents 80% energy rebound)
-    void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection (left and right)
-    // ZH: 物理引擎流程 | EN: Physics engine process
-    void updatePhysics();
+    void checkGroundCollision();            // ZH: 螢幕邊緣偵測(底部) | EN: Screen edge detection(bottom)
+    const double wallBounceFactor = -1;     // ZH: 水平回彈係數(負號代表反彈) | EN: Horizontal rebound coefficient(negative sign indicates rebound, 0.8 represents 80% energy rebound)
+    double currentVelocityX = 0;            // ZH: 當前實際水平速度 | EN: Current actual horizontal speed
+    const double acceleration = 0.2;        // ZH: 加速度 | EN: acceleration
+    const double friction = 0.15;           // ZH: 摩擦力 / 減速度 | EN: Friction / deceleration
+    double targetVelocityX = 0;             // ZH: 目標速度(由 AI 決定) | EN: Target speed(determined by AI)
+    void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection(left and right)
+    void updatePhysics();                   // ZH: 物理引擎流程 | EN: Physics engine process
 
     // ZH: 行動邏輯 | EN: Action Logic
     QTimer *behaviorTimer;      // ZH: 用於計時幾秒思考一次下一次行動 | EN: Used to time a few seconds to consider the next action

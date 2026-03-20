@@ -125,9 +125,12 @@ void MainWindow::updatePetSkin(int setNumber)
     }
 
     // ZH: 處理水平翻轉 | EN: Handling horizontal flipping
-    if (velocityX < 0)
+    if (qAbs(currentVelocityX) > 0.1)
     {
-        pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
+        if (currentVelocityX < 0)
+        {
+            pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
+        }
     }
 
     ui->label->setPixmap(pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -178,18 +181,21 @@ void MainWindow::setState(MainWindow::State nextState)
     imageSwitchTimer->stop();
     currentSetNumber = 0;
 
-    // ZH: 若新狀態有動畫則啟動計時器 | EN: If the new state has an animation, start the timer.
-    if (animConfigs.contains(currentState))
-    {
-        currentSetNumber = 1;
-        imageSwitchTimer->start(animConfigs[currentState].intervalMs);
-    }
-
     switch (currentState)
     {
+    case Walking:
+        // ZH: 若新狀態有動畫則啟動計時器 | EN: If the new state has an animation, start the timer.
+        if (animConfigs.contains(currentState))
+        {
+            currentSetNumber = 1;
+            imageSwitchTimer->start(animConfigs[currentState].intervalMs);
+        }
+        break;
+
     case Captured:
         physicsTimer->stop();
         break;
+
     default:
         break;
     }
@@ -209,19 +215,44 @@ void MainWindow::updatePhysics()
 
     case Walking:
         // ZH: 水平移動邏輯 | EN: Horizontal movement logic
-        if (isGrounded) // ZH: 落地後才可移動 | EN: only move after landing
+        if (isGrounded)
         {
-            if (walkSteps > 0)  // ZH: 不可用 while loop 因為這是計時器邏輯，將會重複執行 | EN: The while loop is not usable because it's timer logic and will execute repeatedly
+            // ZH: 行動加速度計算 | EN: Action accelerometer
+            if (walkSteps > 0)
             {
-                this->move(this->x() + (int)velocityX, this->y());
-                checkBoundaryCollision();   // ZH: 撞牆偵測 | EN: Wall collision detection
+                // ZH: 朝目標速度加速 | EN: Accelerate towards the target
+                if (currentVelocityX < targetVelocityX)
+                    currentVelocityX = qMin(targetVelocityX, currentVelocityX + acceleration);
+                else if (currentVelocityX > targetVelocityX)
+                    currentVelocityX = qMax(targetVelocityX, currentVelocityX - acceleration);
+            }
+            else
+            {
+                // ZH: 受摩擦力影響減速 | EN: Deceleration due to friction
+                if (currentVelocityX > 0)
+                    currentVelocityX = qMax(0.0, currentVelocityX - friction);
+                else if (currentVelocityX < 0)
+                    currentVelocityX = qMin(0.0, currentVelocityX + friction);
+            }
+
+            // ZH: 動畫切換的頻率隨著移動速度改變(速度越快，動畫播越快) | EN: The animation switching frequency changes with movement speed(the faster the speed, the faster the animation plays)
+            if (qAbs(currentVelocityX) > 0.1)
+            {
+                int dynamicInterval = 300 - (static_cast<int>(qAbs(currentVelocityX) * 100));
+                dynamicInterval = qBound(80, dynamicInterval, 350);
+                imageSwitchTimer->setInterval(dynamicInterval);
+            }
+
+            this->move(this->x() + (int)currentVelocityX, this->y());
+            checkBoundaryCollision();
+
+            if (walkSteps > 0)
                 walkSteps--;
 
-                if (walkSteps == 0)
-                {
-                    velocityX = 0;              // ZH: 停止移動 | EN: Stop Moving
-                    setState(Standing);
-                }
+            if (walkSteps == 0 && qAbs(currentVelocityX) < 0.1)
+            {
+                currentVelocityX = 0;
+                setState(Standing);
             }
         }
 
@@ -302,17 +333,12 @@ void MainWindow::checkBoundaryCollision()
     int rightWall = screenRect.right() - this->width();
 
     // ZH: 檢查左右邊界 | EN: Check left and right boundaries
-    if (this->x() <= leftWall)
+    if (this->x() <= leftWall || this->x() >= rightWall)
     {
-        // ZH: 撞到左邊界 | EN: Hit the left boundary
-        this->move(leftWall, this->y());    // ZH: 修正位置防止出界 | EN: Correct the position to prevent it from going out of bounds
-        velocityX *= wallBounceFactor;      // ZH: 反彈 | EN: rebound
-    }
-    else if (this->x() >= rightWall)
-    {
-        // ZH: 撞到右邊界 | EN: Hit the right boundary
-        this->move(rightWall, this->y());   // ZH: 修正位置防止出界 | EN: Correct the position to prevent it from going out of bounds
-        velocityX *= wallBounceFactor;      // ZH: 反彈 | EN: rebound
+        this->move(qBound(leftWall, this->x(), rightWall), this->y());
+
+        currentVelocityX *= wallBounceFactor;
+        targetVelocityX *= wallBounceFactor;
     }
 }
 
@@ -335,7 +361,7 @@ void MainWindow::decideNextAction()
         imageSwitchTimer->stop();   // ZH: 暫停圖像集切換計時器 | EN: Disable image set switching timer
         currentSetNumber = 0;
         walkSteps = 0;              // ZH: 清空行動步數 | EN: Clear action steps
-        velocityX = 0;
+        targetVelocityX = 0;
         return;
     }
 
@@ -358,15 +384,14 @@ void MainWindow::decideNextAction()
             direction = -1;
 
         // ZH: 設定移動參數 | EN: Set movement parameters
-        velocityX = direction * walkSpeed;
+        targetVelocityX = direction * walkSpeed;
         walkSteps = QRandomGenerator::global()->bounded(120) + 90; // ZH: 隨機步數 90~210 | EN: Random number of steps: 90~210
 
         setState(Walking);
     }
     else    // ZH: 40% 原地站定 | EN: 40% standing
     {
-        velocityX = 0;
-        walkSteps = 0;
+        targetVelocityX = 0;
         setState(Standing);
     }
 }
