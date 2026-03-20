@@ -9,8 +9,8 @@
 #include <QMovie>               // ZH: 處理動態圖 | EN: Processing dynamic images
 #include <QScreen>              // ZH: 獲取螢幕資訊 | EN: Get screen information
 #include <QGuiApplication>      // ZH: 監聽螢幕變化 | EN: Listen to screen changes
-#include <QTimer>
-#include <QRandomGenerator>     // ZH: 生成隨機數 | EN: Generate random numbers
+#include <QTimer>               // ZH: 計時器 | EN: Timer
+#include <QRandomGenerator>     // ZH: 隨機數 | EN: Random numbers
 
 //===============================================================================================
 
@@ -370,9 +370,9 @@ void MainWindow::decideNextAction()
     // ZH: 計算目前的 X 座標相對於螢幕可用區域的比例(0.0 為最左，1.0 為最右) | EN: Calculate the current X coordinate relative to the available screen area (0.0 is the leftmost, 1.0 is the rightmost)
     double positionRatio = static_cast<double>(this->x() - screenRect.left()) / usableWidth;
 
-    int roll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
+    actionRoll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
 
-    if (roll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
+    if (actionRoll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
     {
         double rightProb = 1.0 - positionRatio; // ZH: 往右的機率隨位置線性調整 | EN: The probability of going right is linearly adjusted with position
         double dirRoll = QRandomGenerator::global()->generateDouble(); // ZH: 生成 0.0 ~ 1.0 的隨機數 | EN: Generate random numbers between 0.0 and 1.0
@@ -394,6 +394,44 @@ void MainWindow::decideNextAction()
         targetVelocityX = 0;
         setState(Standing);
     }
+}
+
+//===============================================================================================
+
+//===============================================================================================
+
+MainWindow::State MainWindow::getCurrentState() const
+{
+    return currentState;
+}
+
+double MainWindow::getVelX() const
+{
+    return currentVelocityX;
+}
+
+double MainWindow::getTargetVelX() const
+{
+    return targetVelocityX;
+}
+
+int MainWindow::getSteps() const
+{
+    return walkSteps;
+}
+
+double MainWindow::getDecisionTimerRemaining() const
+{
+    if (behaviorTimer && behaviorTimer->isActive())
+    {
+        return behaviorTimer->remainingTime() / 1000.0;
+    }
+    return 0.0;
+}
+
+int MainWindow::getActionRoll() const
+{
+    return actionRoll;
 }
 
 //===============================================================================================

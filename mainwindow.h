@@ -19,6 +19,13 @@ class QTimer;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+    // ZH: 宣告屬性: Q_PROPERTY(型別 名稱 READ 讀取函數) | EN: Declare property: Q_PROPERTY(type name READ read function)
+    Q_PROPERTY(State currentState READ getCurrentState)
+    Q_PROPERTY(double currentVelocityX READ getVelX)
+    Q_PROPERTY(double targetVelocityX READ getTargetVelX)
+    Q_PROPERTY(int walkSteps READ getSteps)
+    Q_PROPERTY(double decisionTimerRemaining READ getDecisionTimerRemaining)
+    Q_PROPERTY(int actionRoll READ getActionRoll)
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -26,6 +33,13 @@ public:
     // ZH: 桌寵狀態(事件)列表 | EN: Desktop pet status(event) list
     enum State { Standing, Walking, Flying, Hovering, Captured };
     Q_ENUM(State);  // ZH: 讓 Qt 記住名稱的字串形式 | EN: Let Qt remember the string form of the name
+    // ZH: Q_PROPERTY 對應的 Getter Functions | EN: Getter Functions corresponding to Q_PROPERTY
+    State getCurrentState() const;
+    double getVelX() const;
+    double getTargetVelX() const;
+    int getSteps() const;
+    double getDecisionTimerRemaining() const;
+    int getActionRoll() const;
 
 private:
     // ZH: 定義動畫配置結構 | EN: Define animation configuration structure
@@ -78,6 +92,7 @@ private:
     void turnImageSet();        // ZH: 用於控制 currentSetNumber 並轉換圖片 | EN: Used to control currentSetNumber and transform images
     int walkSteps = 0;          // ZH: 行走步數(控制行走時間) | EN: Walking steps(controlling walking time)
     double walkSpeed = 2.0;     // ZH: 行走速度 | EN: Walking Speed
+    int actionRoll;             // ZH: 用於機率決策(提供開發者模式觀察用) | EN:
     void decideNextAction();    // ZH: 行動決策邏輯 | EN: Action Decision Logic
 
 protected:
