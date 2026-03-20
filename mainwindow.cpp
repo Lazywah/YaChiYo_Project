@@ -129,7 +129,8 @@ void MainWindow::updatePetSkin(int setNumber)
     {
         if (currentVelocityX < 0)
         {
-            pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
+            // pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
+            pix = QPixmap::fromImage(pix.toImage().flipped(Qt::Horizontal));    // ZH: 使用 Qt 6 規範寫法 | EN: Using Qt 6 standard syntax
         }
     }
 
