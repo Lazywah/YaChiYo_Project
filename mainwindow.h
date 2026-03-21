@@ -26,6 +26,8 @@ class MainWindow : public QMainWindow
     Q_PROPERTY(int walkSteps READ getSteps)
     Q_PROPERTY(double decisionTimerRemaining READ getDecisionTimerRemaining)
     Q_PROPERTY(int actionRoll READ getActionRoll)
+    Q_PROPERTY(double ImageSwitchTimerRemaining READ getImageSwitchTimerRemaining)
+    Q_PROPERTY(int currentSetNumber READ getCurrentSetNumber)
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -40,6 +42,8 @@ public:
     int getSteps() const;
     double getDecisionTimerRemaining() const;
     int getActionRoll() const;
+    double getImageSwitchTimerRemaining() const;
+    int getCurrentSetNumber() const;
 
 private:
     // ZH: 定義動畫配置結構 | EN: Define animation configuration structure
@@ -61,7 +65,7 @@ private:
     const QString testImageSetPath = ":/res/images/testImageSet/";
     QMap<State, AnimationConfig> animConfigs;   // ZH: 狀態與配置對照表
     void initAnimationConfigs();                // ZH: 初始化函數
-    void updatePetSkin(int setNumber = 0);
+    void updatePetSkin();
     // void loadImage(QString filename, int setNumber = 0);
     // void loadAnimation(QString filename);
 

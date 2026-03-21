@@ -103,7 +103,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     //Q_UNUSED(event);    // ZH: 僅用於消除因為撰寫函數邏輯的警告 | EN: Used only to eliminate warnings caused by writing function logic
 }
 
-void MainWindow::updatePetSkin(int setNumber)
+void MainWindow::updatePetSkin()
 {
     // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
     QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
@@ -127,7 +127,7 @@ void MainWindow::updatePetSkin(int setNumber)
     // ZH: 處理水平翻轉 | EN: Handling horizontal flipping
     if (qAbs(currentVelocityX) > 0.1)
     {
-        if (currentVelocityX < 0)
+        if (currentVelocityX < -0.1)
         {
             // pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
             pix = QPixmap::fromImage(pix.toImage().flipped(Qt::Horizontal));    // ZH: 使用 Qt 6 規範寫法 | EN: Using Qt 6 standard syntax
@@ -433,6 +433,20 @@ double MainWindow::getDecisionTimerRemaining() const
 int MainWindow::getActionRoll() const
 {
     return actionRoll;
+}
+
+double MainWindow::getImageSwitchTimerRemaining() const
+{
+    if (imageSwitchTimer && imageSwitchTimer->isActive())
+    {
+        return imageSwitchTimer->remainingTime() / 1000.0;
+    }
+    return 0.0;
+}
+
+int MainWindow::getCurrentSetNumber() const
+{
+    return currentSetNumber;
 }
 
 //===============================================================================================
