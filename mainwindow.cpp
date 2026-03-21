@@ -241,7 +241,10 @@ void MainWindow::updatePhysics()
             {
                 int dynamicInterval = 300 - (static_cast<int>(qAbs(currentVelocityX) * 100));
                 dynamicInterval = qBound(80, dynamicInterval, 350);
-                imageSwitchTimer->setInterval(dynamicInterval);
+                if (qAbs(imageSwitchTimer->interval() - dynamicInterval) > dynamicInterval)
+                {
+                    imageSwitchTimer->setInterval(dynamicInterval);
+                }
             }
 
             this->move(this->x() + (int)currentVelocityX, this->y());
