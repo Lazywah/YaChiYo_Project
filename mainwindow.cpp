@@ -31,6 +31,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     setAttribute(Qt::WA_TranslucentBackground); // ZH: 將視窗背景設為透明 | EN: Set window background to transparent
 
+    initAnimationConfigs();
+
+    initAllTimer();
+
+    setState(Standing);
+}
+
+//===============================================================================================
+
+//===============================================================================================
+
+void MainWindow::initAnimationConfigs()
+{
+    animConfigs[Walking] = {6, 150};
+}
+
+void MainWindow::initAllTimer()
+{
     physicsTimer = new QTimer(this);                                                // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
     connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);      // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
     physicsTimer->start(16);                                                        // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
@@ -39,17 +57,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);  // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
     behaviorTimer->start(5000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
 
-    animConfigs[Walking] = {6, 150};
-
     imageSwitchTimer = new QTimer;                                                  // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
     connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
 
-    setState(Standing);
 }
-
-//===============================================================================================
-
-//===============================================================================================
 
 // ZH: 宣告右鍵選單中的事件 | EN: Declare event in right-click menu
 void MainWindow::contextMenuEvent(QContextMenuEvent *event)

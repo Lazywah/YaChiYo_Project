@@ -58,13 +58,14 @@ private:
 
     // ZH: 狀態設定流程 | EN: Status setting process
     void setState(MainWindow::State nextState);
+    void initAnimationConfigs();                // ZH: 初始化狀態動畫相關參數 | EN: Initialization state animation related parameters
+    void initAllTimer();                        // ZH: 初始化所有計時器 | EN: Initialize all timers
 
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
     int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
     const QString imagePath = ":/res/images/characterAnimation/";
     const QString testImageSetPath = ":/res/images/testImageSet/";
     QMap<State, AnimationConfig> animConfigs;   // ZH: 狀態與配置對照表
-    void initAnimationConfigs();                // ZH: 初始化函數
     void updatePetSkin();
     // void loadImage(QString filename, int setNumber = 0);
     // void loadAnimation(QString filename);
