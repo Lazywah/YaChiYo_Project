@@ -46,8 +46,12 @@ SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
 
 void SettingsCenter::showWindow()
 {
-    // ZH: 將視窗移至螢幕中央
-    QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();   // ZH: 獲取當前主螢幕尺寸（排除工作列後）
+    // ZH: 將視窗移至當前螢幕中央 | EN: Move window to center of current screen
+    QScreen *screen = QGuiApplication::screenAt(mainApp->geometry().center());
+    if (!screen)
+        screen = QGuiApplication::primaryScreen();
+        
+    QRect screenGeometry = screen->availableGeometry();
 
     //int x = (screenGeometry.width() - this->width()) / 2 + screenGeometry.left();
     //int y = (screenGeometry.height() - this->height()) / 2 + screenGeometry.top();

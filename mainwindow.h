@@ -94,6 +94,9 @@ private:
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;
 
+    // ZH: 獲取當前所在的螢幕可用區域 | EN: Get the available area of the current screen
+    QRect getCurrentScreenRect() const;
+
     // ZH: 物理引擎變數與函數 | EN: Physics engine value and function
     QTimer *physicsTimer;
     double velocityY = 0;                   // ZH: 垂直速度 | EN: Vertical velocity

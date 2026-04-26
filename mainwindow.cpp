@@ -59,7 +59,7 @@ void MainWindow::initAllConnect()
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);
     behaviorTimer->start(behaviorInterval);                                          // ZH: 啟用行動決策計時器 | EN: Enable action decision timer
 
-    imageSwitchTimer = new QTimer;                                                  // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
+    imageSwitchTimer = new QTimer(this);                                            // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
     connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);
 
     networkManager = new QNetworkAccessManager(this);                               // ZH: 初始化 AI 通訊網管 | EN: Initialize AI communication network management
@@ -123,7 +123,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton)
     {
         // ZH: 釋放滑鼠時判斷是否在空中，若在空中則進入浮空狀態 | EN: Check if in air when mouse released, enter Hovering if airborne
-        QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+        QRect screenRect = getCurrentScreenRect();
         int groundY = screenRect.bottom() - this->height();
 
         if (this->y() < groundY - 10)   // ZH: 距離地面超過 10px 則視為在空中 | EN: More than 10px above ground = airborne
@@ -237,7 +237,7 @@ void MainWindow::setState(MainWindow::State nextState)
     case Flying:
     {
         // ZH: 隨機選擇螢幕上的飛行目標位置 | EN: Randomly select a flying target position on screen
-        QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+        QRect screenRect = getCurrentScreenRect();
         flyTargetX = QRandomGenerator::global()->bounded(screenRect.left(), screenRect.right() - this->width());
         flyTargetY = QRandomGenerator::global()->bounded(screenRect.top() + 50, screenRect.bottom() - this->height() - 100);
         velocityY = 0;
@@ -382,8 +382,8 @@ void MainWindow::applyGravity()
 
 void MainWindow::checkGroundCollision()
 {
-    // ZH: 獲取當前視窗所在螢幕的可用區域(避開工作列) | EN: Get the available area of ​​the screen where the current window is located (excluding the task bar)
-    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+    // ZH: 獲取目前的螢幕可用區域 | EN: Get the current screen available area
+    QRect screenRect = getCurrentScreenRect();
     // ZH: 計算地面的 Y 座標(螢幕底部-視窗高度) | EN: Calculate the Y coordinates of the ground (bottom of screen - viewport height)
     int groundY = screenRect.bottom() - this->height();
 
@@ -412,7 +412,7 @@ void MainWindow::checkGroundCollision()
 void MainWindow::checkBoundaryCollision()
 {
     // ZH: 獲取螢幕可用區域 | EN: Get screen available area
-    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+    QRect screenRect = getCurrentScreenRect();
 
     // ZH: 獲取桌寵目前的 X 座標邊界 | EN: Get the current X coordinate boundaries of the desktop pet
     int leftWall = screenRect.left();
@@ -478,7 +478,7 @@ void MainWindow::decideNextAction()
         return;
     }
 
-    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+    QRect screenRect = getCurrentScreenRect();
     int usableWidth = screenRect.width() - this->width();
     // ZH: 計算目前的 X 座標相對於螢幕可用區域的比例(0.0 為最左，1.0 為最右) | EN: Calculate the current X coordinate relative to the available screen area (0.0 is the leftmost, 1.0 is the rightmost)
     double positionRatio = static_cast<double>(this->x() - screenRect.left()) / usableWidth;
@@ -619,6 +619,16 @@ double MainWindow::getImageSwitchTimerRemaining() const
 int MainWindow::getCurrentSetNumber() const
 {
     return currentSetNumber;
+}
+
+QRect MainWindow::getCurrentScreenRect() const
+{
+    QScreen *screen = QGuiApplication::screenAt(this->geometry().center());
+    if (!screen)
+    {
+        screen = QGuiApplication::primaryScreen();
+    }
+    return screen->availableGeometry();
 }
 
 QString MainWindow::getLastAIError() const
