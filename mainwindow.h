@@ -35,6 +35,7 @@ class MainWindow : public QMainWindow
     Q_PROPERTY(int actionRoll READ getActionRoll)
     Q_PROPERTY(double ImageSwitchTimerRemaining READ getImageSwitchTimerRemaining)
     Q_PROPERTY(int currentSetNumber READ getCurrentSetNumber)
+    Q_PROPERTY(QString lastAIError READ getLastAIError)
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -56,6 +57,7 @@ public:
     int getActionRoll() const;
     double getImageSwitchTimerRemaining() const;
     int getCurrentSetNumber() const;
+    QString getLastAIError() const;
 
 private:
     // ZH: 定義動畫配置結構 | EN: Define animation configuration structure
@@ -114,6 +116,7 @@ private:
 
     // ZH: AI 通訊 | EN: AI communication
     QNetworkAccessManager *networkManager;
+    QString lastAIError;    // ZH: 最後一次 AI 通訊錯誤訊息 | EN: Last AI communication error message
     void requestAIProcessing(const QString &prompt);
 
 private slots:

@@ -11,6 +11,7 @@
 #include <QGuiApplication>      // ZH: 監聽螢幕變化 | EN: Listen to screen changes
 #include <QTimer>               // ZH: 計時器 | EN: Timer
 #include <QRandomGenerator>     // ZH: 隨機數 | EN: Random numbers
+#include <QToolTip>             // ZH: 提示框 | EN: Tooltip
 
 //===============================================================================================
 
@@ -456,10 +457,25 @@ void MainWindow::onAIResultReceived(QNetworkReply *reply)
 
         QPixmap newPix;
         if (newPix.loadFromData(resBa))
+        {
             ui->label->setPixmap(newPix);
+            lastAIError.clear();    // ZH: 成功時清除錯誤訊息 | EN: Clear error message on success
+        }
+        else
+        {
+            // ZH: 圖片解碼失敗 | EN: Image decoding failed
+            lastAIError = "AI Error: Failed to decode response image";
+            QToolTip::showText(this->mapToGlobal(QPoint(0, 0)), lastAIError, this, QRect(), 3000);
+        }
     }
-    reply->deleteLater();
+    else
+    {
+        // ZH: 網路或後端錯誤 | EN: Network or backend error
+        lastAIError = QString("AI Error: %1").arg(reply->errorString());
+        QToolTip::showText(this->mapToGlobal(QPoint(0, 0)), lastAIError, this, QRect(), 3000);
+    }
 
+    reply->deleteLater();
     setState(Standing);
 }
 
@@ -513,6 +529,11 @@ double MainWindow::getImageSwitchTimerRemaining() const
 int MainWindow::getCurrentSetNumber() const
 {
     return currentSetNumber;
+}
+
+QString MainWindow::getLastAIError() const
+{
+    return lastAIError;
 }
 
 //===============================================================================================
