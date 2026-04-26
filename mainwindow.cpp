@@ -77,6 +77,17 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
         settingsCenter->showWindow();
     });
 
+    menu.addSeparator();    // ZH: 分隔線 | EN: Separator
+
+    // ZH: AI 變身 | EN: AI Transform
+    QAction *aiAction = menu.addAction("AI 變身");
+    connect(aiAction, &QAction::triggered, this, [this]()
+    {
+        requestAIProcessing("transform this character into a new style");
+    });
+
+    menu.addSeparator();    // ZH: 分隔線 | EN: Separator
+
     // ZH: 關閉桌寵 | EN: Close desktop pet
     QAction *closeAction = menu.addAction("關閉桌寵");
     connect(closeAction, &QAction::triggered, this, &MainWindow::close);
