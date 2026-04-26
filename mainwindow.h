@@ -89,8 +89,7 @@ private:
     const QString testImageSetPath = ":/res/images/testImageSet/";
     QMap<State, AnimationConfig> animConfigs;   // ZH: 狀態與配置對照表
     void updatePetSkin();
-    // void loadImage(QString filename, int setNumber = 0);
-    // void loadAnimation(QString filename);
+    QMovie *currentMovie = nullptr; // ZH: 用於播放 GIF 動畫 | EN: Used to play GIF animation
 
     // ZH: 用於計算滑鼠與視窗左上角的偏差值 | EN: Used to calculate the offset between the mouse and the top left corner of the viewport
     QPoint m_offset;

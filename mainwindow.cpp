@@ -144,6 +144,34 @@ void MainWindow::updatePetSkin()
     // ZH: 自動獲取當前狀態的字串 | EN: Auto retrieve the string of the current state
     QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
     QString stateName = metaEnum.valueToKey(currentState);
+    
+    // ZH: 停止並清除舊動畫 | EN: Stop and clear old animation
+    if (currentMovie)
+    {
+        currentMovie->stop();
+        currentMovie->deleteLater();
+        currentMovie = nullptr;
+    }
+
+    int scaledSize = static_cast<int>(250 * petScale);
+
+    // ZH: 檢查是否有對應的 GIF 動畫 (或當設定強制使用 GIF 皮膚) | EN: Check for GIF animation or forced GIF skin type
+    QString gifPath = imagePath + stateName + ".gif";
+    if (petSkinType == 1 || QFile::exists(gifPath))
+    {
+        if (QFile::exists(gifPath))
+        {
+            currentMovie = new QMovie(gifPath);
+            currentMovie->setScaledSize(QSize(scaledSize, scaledSize));
+            ui->label->setMovie(currentMovie);
+            currentMovie->start();
+            
+            ui->label->adjustSize();
+            this->adjustSize();
+            return;
+        }
+    }
+
     QPixmap pix;
 
     // ZH: 判斷是否要讀取序列幀 | EN: Determine whether to read the sequence frame
@@ -165,49 +193,15 @@ void MainWindow::updatePetSkin()
     {
         if (currentVelocityX < -0.1)
         {
-            // pix = QPixmap::fromImage(pix.toImage().mirrored(true, false));
             pix = QPixmap::fromImage(pix.toImage().flipped(Qt::Horizontal));    // ZH: 使用 Qt 6 規範寫法 | EN: Using Qt 6 standard syntax
         }
     }
 
     // ZH: 使用 petScale 動態計算圖片大小 | EN: Use petScale to dynamically calculate image size
-    int scaledSize = static_cast<int>(250 * petScale);
     ui->label->setPixmap(pix.scaled(scaledSize, scaledSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     ui->label->adjustSize();
     this->adjustSize();
 }
-
-// ZH: 設置靜態圖 | EN: Set static images
-// void MainWindow::loadImage(QString filename, int setNumber)
-// {
-//     QPixmap pix = QPixmap(imagePath + filename + ".png")
-//     pix = pix.scaled(320, 640, Qt::KeepAspectRatio, Qt::SmoothTransformation);  // ZH: 手動調整 pix 大小 | EN: Manually adjust the pix size
-
-//     ui->label->setPixmap(pix);
-//     ui->label->adjustSize();    // ZH: 自動調整 label 大小以包覆 pix | EN: Auto adjust the label size to cover the pix
-//     this->adjustSize();         // ZH: 自動調整視窗大小以包覆 label | EN: Auto adjust the window size to cover the label
-// }
-
-// ZH: 設置動態圖 | EN: Set dynamic images
-// void MainWindow::loadAnimation(QString filename)
-// {
-//     ui->label->setMovie(movie);
-
-//     ui->label->setScaledContents(true); // ZH: 使動畫自適應 label 大小 | EN: Make the animation adapt to the label size
-
-//     // ZH: 取得動畫第一幀的尺寸以調整視窗大小 | EN: Get the size of the first frame of the animation to adjust the viewport size.
-//     movie->jumpToFrame(0);
-//     QSize movieSize = movie->currentImage().size();
-//     ui->label->setFixedSize(movieSize);
-//     this->setFixedSize(movieSize);
-
-//     // ZH: 手動調整動畫大小 | EN: Manually adjust the animation size
-//     movie->setScaledSize(QSize(256, 256));
-//     ui->label->setFixedSize(256, 256);
-//     this->setFixedSize(256, 256);
-
-//     movie->start();
-// }
 
 void MainWindow::setState(MainWindow::State nextState)
 {
