@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     initAnimationConfigs();
 
-    initAllTimer();
+    initAllConnect();
 
     setState(Standing);
 }
@@ -47,19 +47,21 @@ void MainWindow::initAnimationConfigs()
     animConfigs[Walking] = {6, 150};
 }
 
-void MainWindow::initAllTimer()
+void MainWindow::initAllConnect()
 {
     physicsTimer = new QTimer(this);                                                // ZH: 初始化物理引擎計時器 | EN: Initialize physics engine timer
     connect(physicsTimer, &QTimer::timeout, this, &MainWindow::updatePhysics);      // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
     physicsTimer->start(16);                                                        // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
 
     behaviorTimer = new QTimer(this);                                               // ZH: 初始化行動決策計時器 | EN: Initialize action decision timer
-    connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);  // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
+    connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);
     behaviorTimer->start(5000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
 
     imageSwitchTimer = new QTimer;                                                  // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
-    connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);   // ZH: 串接上發送者、訊號、接收者、需運行函數 | EN: Connect the sender, signal, receiver, and function to be executed
+    connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);
 
+    networkManager = new QNetworkAccessManager(this);                               // ZH: 初始化 AI 通訊網管 | EN: Initialize AI communication network management
+    connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onAIResultReceived);
 }
 
 // ZH: 宣告右鍵選單中的事件 | EN: Declare event in right-click menu
@@ -292,6 +294,12 @@ void MainWindow::updatePhysics()
 
     case Captured:
         break;
+
+    case AI_Processing:
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -362,6 +370,9 @@ void MainWindow::turnImageSet()
     if (!animConfigs.contains(currentState))
         return;
 
+    if (currentState == AI_Processing)
+        return;
+
     int total = animConfigs[currentState].totalFrames;
     currentSetNumber = (currentSetNumber % total) + 1;
 
@@ -409,6 +420,47 @@ void MainWindow::decideNextAction()
         targetVelocityX = 0;
         setState(Standing);
     }
+}
+
+void MainWindow::requestAIProcessing(const QString &prompt)
+{
+    if (currentState == AI_Processing)
+        return;
+
+    setState(AI_Processing);
+
+    // ZH: 擷取目前 Label 畫面 | EN: Capture the current Label screen
+    QPixmap pix = ui->label->pixmap(Qt::ReturnByValue);
+    QByteArray ba;
+    QBuffer buffer(&ba);
+    pix.save(&buffer, "PNG");
+    QString base64Img = ba.toBase64();
+
+    // ZH: 建立 JSON 內容 | EN: Create JSON content
+    QJsonObject json;
+    json["image"] = base64Img;
+    json["prompt"] = prompt;
+
+    // ZH: 發送 POST 請求至 Python 後端 | EN: Send a POST request to the Python backend
+    QNetworkRequest request(QUrl("http://127.0.0.1:8000/transform"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    networkManager->post(request, QJsonDocument(json).toJson());
+}
+
+void MainWindow::onAIResultReceived(QNetworkReply *reply)
+{
+    if (reply->error() == QNetworkReply::NoError)
+    {
+        QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
+        QByteArray resBa = QByteArray::fromBase64(res["result"].toString().toUtf8());
+
+        QPixmap newPix;
+        if (newPix.loadFromData(resBa))
+            ui->label->setPixmap(newPix);
+    }
+    reply->deleteLater();
+
+    setState(Standing);
 }
 
 //===============================================================================================

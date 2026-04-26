@@ -2,9 +2,16 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QPoint>               // ZH: 紀錄點擊座標 | EN: Record click coordinates
-#include <QMouseEvent>          // ZH: 處理滑鼠事件 | EN: Handling mouse events
-#include <QContextMenuEvent>    // ZH: 處理右鍵選單 | EN: Handling right-click menus
+#include <QPoint>                   // ZH: 紀錄點擊座標 | EN: Record click coordinates
+#include <QMouseEvent>              // ZH: 處理滑鼠事件 | EN: Handling mouse events
+#include <QContextMenuEvent>        // ZH: 處理右鍵選單 | EN: Handling right-click menus
+// ZH: AI 通訊所需 | EN: AI communication required
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QBuffer>
 
 #include "settingscenter.h"
 
@@ -33,7 +40,12 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     // ZH: 桌寵狀態(事件)列表 | EN: Desktop pet status(event) list
-    enum State { Standing, Walking, Flying, Hovering, Captured };
+    enum State { Standing,
+                 Walking,
+                 Flying,
+                 Hovering,
+                 Captured,
+                 AI_Processing };
     Q_ENUM(State);  // ZH: 讓 Qt 記住名稱的字串形式 | EN: Let Qt remember the string form of the name
     // ZH: Q_PROPERTY 對應的 Getter Functions | EN: Getter Functions corresponding to Q_PROPERTY
     State getCurrentState() const;
@@ -59,7 +71,7 @@ private:
     // ZH: 狀態設定流程 | EN: Status setting process
     void setState(MainWindow::State nextState);
     void initAnimationConfigs();                // ZH: 初始化狀態動畫相關參數 | EN: Initialization state animation related parameters
-    void initAllTimer();                        // ZH: 初始化所有計時器 | EN: Initialize all timers
+    void initAllConnect();                        // ZH: 初始化所有計時器 | EN: Initialize all timers
 
     // ZH: 圖片 & 動畫載入路徑 | EN: Image & animation load path
     int petSkinType = 0;    // ZH: 用於決定桌寵皮膚的呈現形式(0、png | 1、gif) | Used to determine the presentation format of the desktop pet skin(0. png | 1. gif)
@@ -99,6 +111,14 @@ private:
     double walkSpeed = 2.0;     // ZH: 行走速度 | EN: Walking Speed
     int actionRoll;             // ZH: 用於機率決策(提供開發者模式觀察用) | EN:
     void decideNextAction();    // ZH: 行動決策邏輯 | EN: Action Decision Logic
+
+    // ZH: AI 通訊 | EN: AI communication
+    QNetworkAccessManager *networkManager;
+    void requestAIProcessing(const QString &prompt);
+
+private slots:
+    // ZH: AI 結果回傳 | EN: AI Result Received
+    void onAIResultReceived(QNetworkReply *reply);
 
 protected:
     // ZH: 宣告右鍵選單事件 | EN: Declare right-click menu event
