@@ -104,6 +104,15 @@ private:
     void checkBoundaryCollision();          // ZH: 螢幕邊緣偵測(左右) | EN: Screen edge detection(left and right)
     void updatePhysics();                   // ZH: 物理引擎流程 | EN: Physics engine process
 
+    // ZH: 浮空 & 飛行狀態變數 | EN: Hovering & Flying state variables
+    double hoverPhase = 0.0;                // ZH: Sin Wave 相位 (弧度) | EN: Sin Wave phase (radians)
+    int hoverBaseY = 0;                     // ZH: 浮空基準 Y 座標 | EN: Hovering base Y coordinate
+    const double hoverAmplitude = 8.0;      // ZH: 浮動振幅 (像素) | EN: Hovering amplitude (pixels)
+    const double hoverSpeed = 0.08;         // ZH: 浮動速度 (相位增量) | EN: Hovering speed (phase increment)
+    int flyTargetX = 0;                     // ZH: 飛行目標 X | EN: Flying target X
+    int flyTargetY = 0;                     // ZH: 飛行目標 Y | EN: Flying target Y
+    const double flySpeed = 1.5;            // ZH: 飛行速度 | EN: Flying speed
+
     // ZH: 行動邏輯 | EN: Action Logic
     QTimer *behaviorTimer;      // ZH: 用於計時幾秒思考一次下一次行動 | EN: Used to time a few seconds to consider the next action
     QTimer *imageSwitchTimer;   // ZH: 用於計時圖片切換頻率 | EN: Used to time image switching frequency

@@ -12,6 +12,7 @@
 #include <QTimer>               // ZH: 計時器 | EN: Timer
 #include <QRandomGenerator>     // ZH: 隨機數 | EN: Random numbers
 #include <QToolTip>             // ZH: 提示框 | EN: Tooltip
+#include <QtMath>               // ZH: 數學函數 (qSin) | EN: Math functions (qSin)
 
 //===============================================================================================
 
@@ -121,11 +122,21 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        setState(Standing);
+        // ZH: 釋放滑鼠時判斷是否在空中，若在空中則進入浮空狀態 | EN: Check if in air when mouse released, enter Hovering if airborne
+        QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+        int groundY = screenRect.bottom() - this->height();
+
+        if (this->y() < groundY - 10)   // ZH: 距離地面超過 10px 則視為在空中 | EN: More than 10px above ground = airborne
+        {
+            setState(Hovering);
+        }
+        else
+        {
+            setState(Standing);
+        }
+
         physicsTimer->start(16);    // ZH: 啟用物理引擎計時器，更新頻率 16ms(約 60FPS) | EN: Enable physics engine timer, updating at a frequency of 16ms(approximately 60 FPS)
     }
-
-    //Q_UNUSED(event);    // ZH: 僅用於消除因為撰寫函數邏輯的警告 | EN: Used only to eliminate warnings caused by writing function logic
 }
 
 void MainWindow::updatePetSkin()
@@ -218,6 +229,26 @@ void MainWindow::setState(MainWindow::State nextState)
         }
         break;
 
+    case Hovering:
+        // ZH: 記錄進入浮空時的 Y 座標作為基準，重置相位 | EN: Record Y position as base when entering Hovering, reset phase
+        hoverBaseY = this->y();
+        hoverPhase = 0.0;
+        velocityY = 0;
+        currentVelocityX = 0;
+        isGrounded = false;
+        break;
+
+    case Flying:
+    {
+        // ZH: 隨機選擇螢幕上的飛行目標位置 | EN: Randomly select a flying target position on screen
+        QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+        flyTargetX = QRandomGenerator::global()->bounded(screenRect.left(), screenRect.right() - this->width());
+        flyTargetY = QRandomGenerator::global()->bounded(screenRect.top() + 50, screenRect.bottom() - this->height() - 100);
+        velocityY = 0;
+        isGrounded = false;
+        break;
+    }
+
     case Captured:
         physicsTimer->stop();
         break;
@@ -291,18 +322,42 @@ void MainWindow::updatePhysics()
         break;
 
     case Flying:
-        // ID: feat-1
-        // ZH: 未來新增功能 | EN: Future new features
-        // ZH: 關閉重力，執行位移邏輯，使桌寵前往滑鼠位置 | EN: Turn off gravity, execute displacement logic, and move the desktop pet to the mouse position
-        //moveToTarget();
+    {
+        // ZH: 朝目標位置緩慢飛行 | EN: Fly slowly towards the target position
+        double dx = flyTargetX - this->x();
+        double dy = flyTargetY - this->y();
+        double distance = qSqrt(dx * dx + dy * dy);
+
+        if (distance < 5.0)
+        {
+            // ZH: 到達目標後轉為浮空 | EN: Switch to Hovering after reaching target
+            setState(Hovering);
+        }
+        else
+        {
+            // ZH: 歸一化方向向量並以 flySpeed 移動 | EN: Normalize direction vector and move at flySpeed
+            double moveX = (dx / distance) * flySpeed;
+            double moveY = (dy / distance) * flySpeed;
+            this->move(this->x() + static_cast<int>(moveX), this->y() + static_cast<int>(moveY));
+
+            // ZH: 更新水平速度以驅動翻轉運算 | EN: Update horizontal velocity to drive flip calculation
+            currentVelocityX = moveX;
+            updatePetSkin();
+        }
         break;
+    }
 
     case Hovering:
-        // ID: feat-2
-        // ZH: 未來新增功能 | EN: Future new features
-        // ZH: 垂直速度設為 0，只做微小的上下浮動 (Sin Wave) | EN: The vertical velocity is set to 0, resulting in only a slight up-and-down fluctuation (Sin Wave)
-        //applyBovverEffect();
+    {
+        // ZH: Sin Wave 上下浮動效果 | EN: Sin Wave up-down floating effect
+        hoverPhase += hoverSpeed;
+        if (hoverPhase > 2 * M_PI)  // ZH: 相位回歸避免溢出 | EN: Phase wrap-around to avoid overflow
+            hoverPhase -= 2 * M_PI;
+
+        int newY = hoverBaseY + static_cast<int>(qSin(hoverPhase) * hoverAmplitude);
+        this->move(this->x(), newY);
         break;
+    }
 
     case Captured:
         break;
@@ -403,6 +458,30 @@ void MainWindow::decideNextAction()
         return;
     }
 
+    // ZH: 若正在浮空或飛行中，使用不同的決策邏輯 | EN: Use different decision logic when hovering or flying
+    if (currentState == Hovering || currentState == Flying)
+    {
+        actionRoll = QRandomGenerator::global()->bounded(100);
+
+        if (actionRoll < 50)        // ZH: 50% 繼續浮空 | EN: 50% continue hovering
+        {
+            if (currentState != Hovering)
+                setState(Hovering);
+        }
+        else if (actionRoll < 80)   // ZH: 30% 飛去新位置 | EN: 30% fly to new position
+        {
+            setState(Standing);     // ZH: 先重置狀態再進入 Flying | EN: Reset state first then enter Flying
+            setState(Flying);
+        }
+        else                        // ZH: 20% 落地 | EN: 20% land
+        {
+            velocityY = 0;
+            isGrounded = false;
+            setState(Standing);     // ZH: 交由重力使其落地 | EN: Let gravity bring it down
+        }
+        return;
+    }
+
     QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
     int usableWidth = screenRect.width() - this->width();
     // ZH: 計算目前的 X 座標相對於螢幕可用區域的比例(0.0 為最左，1.0 為最右) | EN: Calculate the current X coordinate relative to the available screen area (0.0 is the leftmost, 1.0 is the rightmost)
@@ -410,7 +489,7 @@ void MainWindow::decideNextAction()
 
     actionRoll = QRandomGenerator::global()->bounded(100);    // ZH: 決定下一動作(0~99) | EN: Decide on the next action(0~99)
 
-    if (actionRoll < 60)  // ZH: 60% 開始移動(散步) | EN: 60% started moving(walking)
+    if (actionRoll < 50)  // ZH: 50% 開始移動(散步) | EN: 50% started moving(walking)
     {
         double rightProb = 1.0 - positionRatio; // ZH: 往右的機率隨位置線性調整 | EN: The probability of going right is linearly adjusted with position
         double dirRoll = QRandomGenerator::global()->generateDouble(); // ZH: 生成 0.0 ~ 1.0 的隨機數 | EN: Generate random numbers between 0.0 and 1.0
@@ -426,6 +505,10 @@ void MainWindow::decideNextAction()
         walkSteps = QRandomGenerator::global()->bounded(120) + 90; // ZH: 隨機步數 90~210 | EN: Random number of steps: 90~210
 
         setState(Walking);
+    }
+    else if (actionRoll < 60)   // ZH: 10% 起飛 | EN: 10% take off and fly
+    {
+        setState(Flying);
     }
     else    // ZH: 40% 原地站定 | EN: 40% standing
     {
