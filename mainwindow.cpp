@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    settingsCenter = new SettingsCenter(this);  // ZH: 將設定中心設置為該視窗的子視窗 | EN: Set the settings center as a child window of this window
+    settingsCenter = new SettingsCenter(this, this);  // ZH: 將設定中心設置為該視窗的子視窗 | EN: Set the settings center as a child window of this window
 
     // --> setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     Qt::WindowFlags flags = windowFlags();
@@ -36,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
     initAnimationConfigs();
 
     initAllConnect();
+
+    initTrayIcon();
 
     setState(Standing);
 }
@@ -89,9 +91,9 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
     menu.addSeparator();    // ZH: 分隔線 | EN: Separator
 
-    // ZH: 關閉桌寵 | EN: Close desktop pet
-    QAction *closeAction = menu.addAction("關閉桌寵");
-    connect(closeAction, &QAction::triggered, this, &MainWindow::close);
+    // ZH: 關閉/隱藏桌寵 | EN: Hide desktop pet
+    QAction *closeAction = menu.addAction("關閉/隱藏桌寵");
+    connect(closeAction, &QAction::triggered, this, &MainWindow::hide);
 
     menu.exec(event->globalPos());
 }
@@ -634,6 +636,45 @@ QRect MainWindow::getCurrentScreenRect() const
 QString MainWindow::getLastAIError() const
 {
     return lastAIError;
+}
+
+void MainWindow::initTrayIcon()
+{
+    trayIcon = new QSystemTrayIcon(this);
+    trayMenu = new QMenu(this);
+
+    // ZH: 設定托盤圖示 (使用 Standing 作為預設) | EN: Set tray icon (using Standing as default)
+    trayIcon->setIcon(QIcon(imagePath + "Standing.png"));
+    trayIcon->setToolTip("YaChiYo Desktop Pet");
+
+    // ZH: 顯示桌寵 | EN: Show pet
+    QAction *showAction = trayMenu->addAction("顯示桌寵 (Show Pet)");
+    connect(showAction, &QAction::triggered, this, &MainWindow::show);
+
+    // ZH: 開啟設定中心 | EN: Open settings
+    QAction *settingsAction = trayMenu->addAction("設定中心 (Settings)");
+    connect(settingsAction, &QAction::triggered, this, [this]()
+    {
+        settingsCenter->showWindow();
+    });
+
+    trayMenu->addSeparator();
+
+    // ZH: 徹底退出程式 | EN: Quit application completely
+    QAction *quitAction = trayMenu->addAction("退出程式 (Quit)");
+    connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
+
+    trayIcon->setContextMenu(trayMenu);
+    trayIcon->show();
+
+    // ZH: 雙擊托盤圖示顯示桌寵 | EN: Double click tray icon to show pet
+    connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+    {
+        if (reason == QSystemTrayIcon::DoubleClick)
+        {
+            this->show();
+        }
+    });
 }
 
 //===============================================================================================

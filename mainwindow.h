@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QBuffer>
+#include <QSystemTrayIcon>
 
 #include "settingscenter.h"
 
@@ -140,6 +141,10 @@ private:
     QNetworkAccessManager *networkManager;
     QString lastAIError;    // ZH: 最後一次 AI 通訊錯誤訊息 | EN: Last AI communication error message
     void requestAIProcessing(const QString &prompt);
+    // ZH: 系統托盤 | EN: System Tray
+    QSystemTrayIcon *trayIcon;
+    QMenu *trayMenu;
+    void initTrayIcon();    // ZH: 初始化系統托盤 | EN: Initialize System Tray
 
 private slots:
     // ZH: AI 結果回傳 | EN: AI Result Received
