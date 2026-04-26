@@ -13,6 +13,7 @@
 #include <QRandomGenerator>     // ZH: 隨機數 | EN: Random numbers
 #include <QToolTip>             // ZH: 提示框 | EN: Tooltip
 #include <QtMath>               // ZH: 數學函數 (qSin) | EN: Math functions (qSin)
+#include <QFile>                // ZH: 檔案操作 | EN: File operations
 
 //===============================================================================================
 
