@@ -12,8 +12,8 @@ pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
     torch_dtype=torch.float16
 ).to("cuda")
 
-@app.post("/generate")
-async def generate(data: dict = Body(...)):
+@app.post("/transform")    # ZH: 端點名稱與 Qt 端對齊 (mainwindow.cpp requestAIProcessing) | EN: Endpoint name aligned with Qt side
+async def transform(data: dict = Body(...)):
     # ZH: 接收 Base64 圖片並轉換為 AI 可讀格式 | EN: Receive Base64 images and convert them into an AI-readable format
     init_img = Image.open(io.BytesIO(base64.b64decode(data['image']))).convert("RGB")
     
