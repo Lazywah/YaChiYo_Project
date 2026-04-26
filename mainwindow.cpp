@@ -165,7 +165,15 @@ void MainWindow::updatePetSkin()
         if (QFile::exists(gifPath))
         {
             currentMovie = new QMovie(gifPath);
-            currentMovie->setScaledSize(QSize(scaledSize, scaledSize));
+            
+            // ZH: 讀取第一幀以取得原始比例，避免變形 | EN: Read first frame to get original ratio, avoid deformation
+            QPixmap tempPix(gifPath);
+            if (!tempPix.isNull()) {
+                QSize newSize = tempPix.size().scaled(scaledSize, scaledSize, Qt::KeepAspectRatio);
+                currentMovie->setScaledSize(newSize);
+            } else {
+                currentMovie->setScaledSize(QSize(scaledSize, scaledSize));
+            }
             ui->label->setMovie(currentMovie);
             currentMovie->start();
             
@@ -189,6 +197,12 @@ void MainWindow::updatePetSkin()
     else
     {
         pix.load(imagePath + stateName + ".png");
+    }
+
+    // ZH: 若找不到該狀態對應的圖片(如 Hovering)，預設退回 Standing 避免消失 | EN: Fallback to Standing if image not found (e.g. Hovering)
+    if (pix.isNull())
+    {
+        pix.load(imagePath + "Standing.png");
     }
 
     // ZH: 處理水平翻轉 | EN: Handling horizontal flipping
