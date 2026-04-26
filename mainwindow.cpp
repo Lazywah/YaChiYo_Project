@@ -57,7 +57,7 @@ void MainWindow::initAllConnect()
 
     behaviorTimer = new QTimer(this);                                               // ZH: 初始化行動決策計時器 | EN: Initialize action decision timer
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);
-    behaviorTimer->start(5000);                                                     // ZH: 啟用行動決策計時器(每 3s 執行一次) | EN: Enable action decision timer (executes every 3 seconds)
+    behaviorTimer->start(behaviorInterval);                                          // ZH: 啟用行動決策計時器 | EN: Enable action decision timer
 
     imageSwitchTimer = new QTimer;                                                  // ZH: 初始化圖像集切換計時器 | EN: Initialize image set switching timer
     connect(imageSwitchTimer, &QTimer::timeout, this, &MainWindow::turnImageSet);
@@ -84,7 +84,7 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
     QAction *aiAction = menu.addAction("AI 變身");
     connect(aiAction, &QAction::triggered, this, [this]()
     {
-        requestAIProcessing("transform this character into a new style");
+        requestAIProcessing(aiPrompt);
     });
 
     menu.addSeparator();    // ZH: 分隔線 | EN: Separator
@@ -170,7 +170,9 @@ void MainWindow::updatePetSkin()
         }
     }
 
-    ui->label->setPixmap(pix.scaled(250, 250, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    // ZH: 使用 petScale 動態計算圖片大小 | EN: Use petScale to dynamically calculate image size
+    int scaledSize = static_cast<int>(250 * petScale);
+    ui->label->setPixmap(pix.scaled(scaledSize, scaledSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     ui->label->adjustSize();
     this->adjustSize();
 }
@@ -633,6 +635,45 @@ QString MainWindow::getLastAIError() const
 //===============================================================================================
 
 //===============================================================================================
+
+void MainWindow::setWalkSpeed(double speed)
+{
+    walkSpeed = speed;
+}
+
+void MainWindow::setGravity(double g)
+{
+    gravity = g;
+}
+
+void MainWindow::setBehaviorInterval(int ms)
+{
+    behaviorInterval = ms;
+    if (behaviorTimer && behaviorTimer->isActive())
+        behaviorTimer->start(ms);   // ZH: 立即套用新間隔 | EN: Apply new interval immediately
+}
+
+void MainWindow::setPetScale(double scale)
+{
+    petScale = scale;
+    updatePetSkin();    // ZH: 立即更新顯示大小 | EN: Update display size immediately
+}
+
+void MainWindow::setAlwaysOnTop(bool onTop)
+{
+    Qt::WindowFlags flags = windowFlags();
+    if (onTop)
+        flags |= Qt::WindowStaysOnTopHint;
+    else
+        flags &= ~Qt::WindowStaysOnTopHint;
+    setWindowFlags(flags);
+    show();     // ZH: setWindowFlags 會隱藏視窗，需重新顯示 | EN: setWindowFlags hides the window, need to show again
+}
+
+void MainWindow::setAiPrompt(const QString &prompt)
+{
+    aiPrompt = prompt;
+}
 
 MainWindow::~MainWindow()
 {

@@ -59,6 +59,14 @@ public:
     int getCurrentSetNumber() const;
     QString getLastAIError() const;
 
+    // ZH: 設定中心可調整的 Setter | EN: Setters adjustable from Settings Center
+    void setWalkSpeed(double speed);
+    void setGravity(double g);
+    void setBehaviorInterval(int ms);
+    void setPetScale(double scale);
+    void setAlwaysOnTop(bool onTop);
+    void setAiPrompt(const QString &prompt);
+
 private:
     // ZH: 定義動畫配置結構 | EN: Define animation configuration structure
     struct AnimationConfig
@@ -90,7 +98,7 @@ private:
     // ZH: 物理引擎變數與函數 | EN: Physics engine value and function
     QTimer *physicsTimer;
     double velocityY = 0;                   // ZH: 垂直速度 | EN: Vertical velocity
-    const double gravity = 0.8;             // ZH: 重力加速度 | EN: Gravitational acceleration
+    double gravity = 0.8;                   // ZH: 重力加速度 (可調整) | EN: Gravitational acceleration (adjustable)
     const double bounceFactor = -0.5;       // ZH: 垂直回彈係數(負號代表反彈，0.5 代表回彈一半能量) | EN: Vertical rebound coefficient (a negative sign indicates a rebound, 0.5 means that half of the energy is rebounded)
     bool isGrounded = false;                // ZH: 在地面上(狀態) | EN: on the ground(status)
     State currentState = Captured;          // ZH: 當前狀態 | EN: Current state
@@ -119,7 +127,10 @@ private:
     int currentSetNumber;       // ZH: 用於紀錄要輪到哪張圖片 | EN: Used to record which image is next
     void turnImageSet();        // ZH: 用於控制 currentSetNumber 並轉換圖片 | EN: Used to control currentSetNumber and transform images
     int walkSteps = 0;          // ZH: 行走步數(控制行走時間) | EN: Walking steps(controlling walking time)
-    double walkSpeed = 2.0;     // ZH: 行走速度 | EN: Walking Speed
+    double walkSpeed = 2.0;     // ZH: 行走速度 (可調整) | EN: Walking Speed (adjustable)
+    int behaviorInterval = 5000; // ZH: 行動決策間隔 ms (可調整) | EN: Action decision interval ms (adjustable)
+    double petScale = 1.0;       // ZH: 桌寵縮放倍率 (可調整) | EN: Pet scale factor (adjustable)
+    QString aiPrompt = "transform this character into a new style"; // ZH: AI 提示詞 (可調整) | EN: AI Prompt (adjustable)
     int actionRoll;             // ZH: 用於機率決策(提供開發者模式觀察用) | EN:
     void decideNextAction();    // ZH: 行動決策邏輯 | EN: Action Decision Logic
 

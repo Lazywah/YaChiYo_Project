@@ -8,6 +8,8 @@ class SettingsCenter;
 }
 
 class MainWindow;
+class QSlider;
+class QCheckBox;
 
 class SettingsCenter : public QDialog
 {
@@ -27,6 +29,7 @@ private:
     Ui::SettingsCenter *ui;
     MainWindow *mainApp;
 
+    void initSettingsInterface();   // ZH: 設定介面初始化邏輯 | EN: Settings interface initialization logic
     void initDeveloperInterface();  // ZH: 開發者介面初始化邏輯 | EN: Developer interface initialization logic
 
     QTimer *updateTimer;
@@ -35,3 +38,4 @@ protected:
 };
 
 #endif // SETTINGSCENTER_H
+
