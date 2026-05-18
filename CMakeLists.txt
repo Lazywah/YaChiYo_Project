@@ -20,6 +20,12 @@ set(PROJECT_SOURCES
         settingscenter.h
         settingscenter.cpp
         settingscenter.ui
+        petphysics.h
+        petphysics.cpp
+        petbehavior.h
+        petbehavior.cpp
+        aiclient.h
+        aiclient.cpp
         resources.qrc
 )
 
