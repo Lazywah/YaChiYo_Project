@@ -34,7 +34,7 @@ SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, [this](int index)
     {
         if (index == 1)
-            updateTimer->start(10);
+            updateTimer->start(100);
         else
             updateTimer->stop();
     });
