@@ -94,7 +94,7 @@ CMakeLists.txt.user*
 /datasets/
 /logs/
 /checkpoints/
-/images/record/
+/resources/images/record/
 
 # Python 相關 (如果你用 Python 訓練 AI)
 __pycache__/

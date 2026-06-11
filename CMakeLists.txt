@@ -13,20 +13,20 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        settingscenter.h
-        settingscenter.cpp
-        settingscenter.ui
-        petphysics.h
-        petphysics.cpp
-        petbehavior.h
-        petbehavior.cpp
-        aiclient.h
-        aiclient.cpp
-        resources.qrc
+        src/main.cpp
+        src/core/mainwindow.cpp
+        src/core/mainwindow.h
+        src/core/mainwindow.ui
+        src/ui/settingscenter.h
+        src/ui/settingscenter.cpp
+        src/ui/settingscenter.ui
+        src/modules/petphysics.h
+        src/modules/petphysics.cpp
+        src/modules/petbehavior.h
+        src/modules/petbehavior.cpp
+        src/modules/aiclient.h
+        src/modules/aiclient.cpp
+        resources/resources.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -51,6 +51,14 @@ else()
         )
     endif()
 endif()
+
+# ZH: 各模組目錄加入 include 路徑，原始碼可直接 #include "xxx.h" 不需相對路徑
+# EN: Add module directories to include path so sources can #include "xxx.h" directly
+target_include_directories(YaChiYo_Project PRIVATE
+    src/core
+    src/modules
+    src/ui
+)
 
 target_link_libraries(YaChiYo_Project PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
