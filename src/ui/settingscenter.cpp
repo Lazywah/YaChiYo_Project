@@ -16,9 +16,11 @@
 #include <QVBoxLayout>          // ZH: 垂直佈局 | EN: Vertical layout
 #include <QGroupBox>            // ZH: 群組框 | EN: Group box
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
+#include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
 
 #include "mainwindow.h"
 #include "petsettings.h"
+#include "petautostart.h"
 
 SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     : QDialog(parent)
@@ -191,6 +193,22 @@ void SettingsCenter::initSettingsInterface()
     connect(alwaysOnTopCheck, &QCheckBox::toggled, this, [this](bool checked)
     {
         mainApp->setAlwaysOnTop(checked);
+    });
+
+    // ZH: 開機自啟動（以登錄檔為真實來源，故直接讀寫 PetAutostart）
+    // EN: Run at startup (registry is the source of truth, so read/write PetAutostart directly)
+    QCheckBox *autostartCheck = new QCheckBox("啟用 (Enabled)");
+    autostartCheck->setChecked(PetAutostart::isEnabled());
+    windowLayout->addRow("開機自啟動 (Run at Startup):", autostartCheck);
+
+    connect(autostartCheck, &QCheckBox::toggled, this, [autostartCheck](bool checked)
+    {
+        // ZH: 設定失敗時還原勾選狀態，避免 UI 與實際不符 | EN: Revert checkbox if the change fails
+        if (!PetAutostart::setEnabled(checked))
+        {
+            QSignalBlocker blocker(autostartCheck);
+            autostartCheck->setChecked(PetAutostart::isEnabled());
+        }
     });
 
     mainLayout->addWidget(windowGroup);
