@@ -94,9 +94,13 @@ pipe.set_ip_adapter_scale(IP_SCALE)
 
 pipe = pipe.to(DEVICE)
 if DEVICE == "cuda":
-    pipe.enable_attention_slicing()
+    # ZH: 注意！不可用 enable_attention_slicing() — 它會覆蓋 IP-Adapter 的注意力處理器，
+    #     造成 "'tuple' object has no attribute 'shape'"。vae_slicing 不影響注意力，安全。
+    # EN: Do NOT use enable_attention_slicing() — it overwrites the IP-Adapter attention
+    #     processors and breaks with "'tuple' object has no attribute 'shape'". vae_slicing is safe.
     pipe.enable_vae_slicing()
-    # pipe.enable_model_cpu_offload()   # ZH: 若 OOM 取消註解 | EN: uncomment if OOM
+    # ZH: 若 VRAM 不足 (OOM)，改用下行 (與 IP-Adapter 相容) | EN: if OOM, use this (IP-Adapter compatible)
+    # pipe.enable_model_cpu_offload()
 
 app = FastAPI()
 
