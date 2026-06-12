@@ -1,6 +1,8 @@
 #include "petskin.h"
 
 #include <QFile>
+#include <QDir>
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -13,6 +15,37 @@ namespace {
             dir.chop(1);
         return dir;
     }
+}
+
+QList<PetSkin::SkinEntry> PetSkin::available()
+{
+    // ZH: 內建在前、使用者在後；同 id 時後者覆蓋前者 | EN: built-in first, user second; same id → user overrides
+    const QStringList roots = {
+        QStringLiteral(":/res/skins"),
+        QCoreApplication::applicationDirPath() + "/skins"
+    };
+
+    QMap<QString, SkinEntry> found;     // ZH: 以 id 為鍵，自動依 id 排序 | EN: keyed by id, sorted by id
+    for (const QString &root : roots)
+    {
+        QDir dir(root);
+        if (!dir.exists())
+            continue;
+
+        const QStringList subs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &id : subs)
+        {
+            const QString sdir = root + "/" + id;
+            if (!QFile::exists(sdir + "/skin.json"))
+                continue;   // ZH: 無 skin.json 不算有效皮膚 | EN: not a valid skin without skin.json
+
+            PetSkin probe;
+            const QString name = probe.load(sdir) ? probe.name() : id;
+            found.insert(id, { id, sdir, name });
+        }
+    }
+
+    return found.values();
 }
 
 bool PetSkin::load(const QString &dir)

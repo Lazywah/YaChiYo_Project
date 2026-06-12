@@ -20,6 +20,7 @@ PetSettingsData PetSettings::load()
     d.gifSkin          = settings.value("gifSkin",          d.gifSkin).toBool();
     d.alwaysOnTop      = settings.value("alwaysOnTop",      d.alwaysOnTop).toBool();
     d.aiPrompt         = settings.value("aiPrompt",         d.aiPrompt).toString();
+    d.currentSkin      = settings.value("currentSkin",      d.currentSkin).toString();
 
     return d;
 }
@@ -35,4 +36,5 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("gifSkin",          d.gifSkin);
     settings.setValue("alwaysOnTop",      d.alwaysOnTop);
     settings.setValue("aiPrompt",         d.aiPrompt);
+    settings.setValue("currentSkin",      d.currentSkin);
 }

@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QMap>
+#include <QList>
 
 // ZH: 皮膚模組 — 從一個皮膚目錄 (含 skin.json) 載入設定，提供各狀態的圖片路徑
 //     皮膚目錄可為 qrc 資源 (":/res/skins/default") 或檔案系統路徑
@@ -25,6 +26,18 @@ public:
         int     interval = 150;     // ZH: kind==Frames 時的播放間隔 ms | EN: frame interval (ms)
         QString fallback;           // ZH: 找不到圖時退回的狀態名 | EN: fallback state name when missing
     };
+
+    // ZH: 可用皮膚的摘要 (供設定中心列表) | EN: Summary of an available skin (for the settings list)
+    struct SkinEntry
+    {
+        QString id;     // ZH: 資料夾名稱 (唯一識別) | EN: folder name (unique id)
+        QString dir;    // ZH: 可載入的完整路徑 | EN: full loadable path
+        QString name;   // ZH: 顯示名稱 (來自 skin.json) | EN: display name (from skin.json)
+    };
+
+    // ZH: 掃描內建 (:/res/skins) 與使用者 (<執行檔>/skins) 目錄，列出所有含 skin.json 的皮膚
+    //     同名時使用者皮膚覆蓋內建 | EN: Discover built-in and user skins; user skins override built-in by id
+    static QList<SkinEntry> available();
 
     // ZH: 載入皮膚目錄 (解析 skin.json)；回傳是否成功 | EN: Load a skin dir (parse skin.json); returns success
     bool load(const QString &dir);

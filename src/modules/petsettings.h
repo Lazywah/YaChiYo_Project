@@ -23,6 +23,7 @@ struct PetSettingsData
     bool    gifSkin          = true;    // ZH: GIF 皮膚模式 (對應 petSkinType 1/0) | EN: GIF skin mode
     bool    alwaysOnTop      = true;    // ZH: 視窗置頂 | EN: Always on top
     QString aiPrompt         = "transform this character into a new style"; // ZH: AI 提示詞 | EN: AI prompt
+    QString currentSkin      = "default";   // ZH: 當前皮膚 id (skins/ 下的資料夾名) | EN: current skin id (folder name under skins/)
 };
 
 // ZH: 設定的讀取與儲存（後端使用 QSettings，Windows 上存於登錄檔）

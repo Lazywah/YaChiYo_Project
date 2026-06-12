@@ -73,6 +73,7 @@ public:
     void setAlwaysOnTop(bool onTop);
     void setAiPrompt(const QString &prompt);
     void setPetSkinType(int type);
+    void setSkin(const QString &id);    // ZH: 切換皮膚 (依 id) | EN: Switch skin by id
 
 private:
     Ui::MainWindow *ui;
@@ -84,7 +85,8 @@ private:
     PetBehavior behavior;
     AIClient   *aiClient = nullptr;
     PetSound   *sound    = nullptr;
-    PetSkin     skin;       // ZH: 當前皮膚 (資料驅動) | EN: Current skin (data-driven)
+    PetSkin     skin;                       // ZH: 當前皮膚 (資料驅動) | EN: Current skin (data-driven)
+    QString     currentSkinId = "default";  // ZH: 當前皮膚 id | EN: Current skin id
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;
@@ -125,6 +127,9 @@ private:
     // ZH: 設定持久化 | EN: Settings persistence
     void applySettings(const PetSettingsData &s);   // ZH: 套用載入的設定到各模組 | EN: Apply loaded settings to modules
     void saveSettings() const;                      // ZH: 將目前狀態寫回儲存 | EN: Persist current state
+
+    // ZH: 依 id 載入皮膚，找不到時退回內建 default | EN: Load skin by id, fall back to built-in default
+    void loadSkinById(const QString &id);
 
     // ZH: 核心邏輯 | EN: Core logic
     void setState(State nextState);

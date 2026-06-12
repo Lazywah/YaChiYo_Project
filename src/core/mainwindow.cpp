@@ -23,13 +23,13 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
 {
     ui->setupUi(this);
 
-    // ZH: 載入內建預設皮膚（資料驅動，定義於 skin.json）| EN: Load the built-in default skin (data-driven via skin.json)
-    skin.load(":/res/skins/default");
-
     // ZH: 載入並套用持久化設定（須在計時器啟動前，確保 behaviorInterval 生效）
     // EN: Load & apply persisted settings before timers start (so behaviorInterval takes effect)
     PetSettingsData saved = PetSettings::load();
     applySettings(saved);
+
+    // ZH: 載入存檔指定的皮膚（資料驅動，定義於 skin.json）| EN: Load the saved skin (data-driven via skin.json)
+    loadSkinById(saved.currentSkin);
 
     settingsCenter = new SettingsCenter(this, this);
 
@@ -536,6 +536,7 @@ void MainWindow::saveSettings() const
     s.gifSkin          = (petSkinType == 1);
     s.alwaysOnTop      = windowFlags().testFlag(Qt::WindowStaysOnTopHint);
     s.aiPrompt         = aiPrompt;
+    s.currentSkin      = currentSkinId;
     PetSettings::save(s);
 }
 
@@ -565,6 +566,32 @@ void MainWindow::setPetScale(double scale)
 void MainWindow::setPetSkinType(int type)
 {
     petSkinType = type;
+    updatePetSkin();
+    saveSettings();
+}
+
+void MainWindow::loadSkinById(const QString &id)
+{
+    // ZH: 從可用清單找出對應路徑，找不到則退回內建 default | EN: Resolve path from the list, fall back to built-in default
+    QString dir = ":/res/skins/default";
+    QString resolvedId = "default";
+    for (const PetSkin::SkinEntry &e : PetSkin::available())
+    {
+        if (e.id == id)
+        {
+            dir = e.dir;
+            resolvedId = e.id;
+            break;
+        }
+    }
+    skin.load(dir);
+    currentSkinId = resolvedId;
+}
+
+void MainWindow::setSkin(const QString &id)
+{
+    loadSkinById(id);
+    currentSetNumber = 0;       // ZH: 重置動畫幀，避免沿用舊皮膚的幀號 | EN: Reset frame to avoid stale index from old skin
     updatePetSkin();
     saveSettings();
 }

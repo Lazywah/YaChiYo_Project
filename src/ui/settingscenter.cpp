@@ -16,11 +16,13 @@
 #include <QVBoxLayout>          // ZH: 垂直佈局 | EN: Vertical layout
 #include <QGroupBox>            // ZH: 群組框 | EN: Group box
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
+#include <QComboBox>            // ZH: 下拉選單（皮膚選擇）| EN: Combo box (skin selection)
 #include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
 
 #include "mainwindow.h"
 #include "petsettings.h"
 #include "petautostart.h"
+#include "petskin.h"
 
 SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     : QDialog(parent)
@@ -129,6 +131,22 @@ void SettingsCenter::initSettingsInterface()
     // ===== ZH: 外觀設定群組 | EN: Appearance settings group =====
     QGroupBox *appearanceGroup = new QGroupBox("外觀設定 (Appearance)", ui->tab);
     QFormLayout *appearanceLayout = new QFormLayout(appearanceGroup);
+
+    // ZH: 皮膚選擇 (掃描內建 + 使用者 skins/ 目錄) | EN: Skin selection (scans built-in + user skins/)
+    QComboBox *skinCombo = new QComboBox;
+    const QList<PetSkin::SkinEntry> skins = PetSkin::available();
+    for (const PetSkin::SkinEntry &e : skins)
+    {
+        skinCombo->addItem(e.name, e.id);           // ZH: 顯示名稱，資料存 id | EN: display name, store id
+        if (e.id == s.currentSkin)
+            skinCombo->setCurrentIndex(skinCombo->count() - 1);
+    }
+    appearanceLayout->addRow("皮膚 (Skin):", skinCombo);
+
+    connect(skinCombo, &QComboBox::currentIndexChanged, this, [this, skinCombo](int)
+    {
+        mainApp->setSkin(skinCombo->currentData().toString());
+    });
 
     // ZH: 桌寵大小 (50% ~ 200%) | EN: Pet scale (50% ~ 200%)
     QSlider *scaleSlider = new QSlider(Qt::Horizontal);
