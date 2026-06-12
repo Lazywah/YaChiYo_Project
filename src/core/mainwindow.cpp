@@ -11,6 +11,16 @@
 #include <QGuiApplication>
 #include <QTimer>
 #include <QToolTip>
+#include <QImage>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QFileDialog>
+#include <QProgressDialog>
+#include <QDateTime>
+#include <QCoreApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 //===============================================================================================
 
@@ -68,6 +78,7 @@ void MainWindow::initAllConnect()
     {
         aiClient = new AIClient(this);
         connect(aiClient, &AIClient::resultReady,    this, &MainWindow::onAIResultReady);
+        connect(aiClient, &AIClient::skinReady,      this, &MainWindow::onSkinReady);
         connect(aiClient, &AIClient::errorOccurred,  this, &MainWindow::onAIError);
     }
 
@@ -96,6 +107,13 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
     connect(aiAction, &QAction::triggered, this, [this]()
     {
         requestAIProcessing(aiPrompt);
+    });
+
+    // ZH: AI 生成整套皮膚 (上傳參考圖) | EN: AI generate a whole skin (upload reference)
+    QAction *aiSkinAction = menu.addAction("AI 生成皮膚 (上傳圖片)…");
+    connect(aiSkinAction, &QAction::triggered, this, [this]()
+    {
+        requestSkinGeneration();
     });
 
     menu.addSeparator();
@@ -353,6 +371,10 @@ void MainWindow::updatePhysics()
 
 void MainWindow::decideNextAction()
 {
+    // ZH: AI 處理中不做任何行動決策，避免打斷生成/變身 | EN: No decisions during AI processing — don't interrupt generation/transform
+    if (currentState == AI_Processing)
+        return;
+
     if (currentState == Captured)
     {
         imageSwitchTimer->stop();
@@ -436,9 +458,156 @@ void MainWindow::onAIResultReady(QPixmap result)
 
 void MainWindow::onAIError(QString errorMsg)
 {
+    hideBusy();
     lastAIError = errorMsg;
     QToolTip::showText(this->mapToGlobal(QPoint(0, 0)), lastAIError, this, QRect(), 3000);
+    if (trayIcon)
+        trayIcon->showMessage("YaChiYo", errorMsg, QSystemTrayIcon::Warning, 4000);
+    pendingSkinPaths.clear();
     setState(Standing);
+}
+
+//===============================================================================================
+// ZH: AI 生成皮膚 | EN: AI skin generation
+//===============================================================================================
+
+// ZH: 收集當前皮膚每個狀態的圖檔 (相對路徑 + 影像，兩串列平行對應)
+// EN: Collect every image of the current skin (parallel lists of relative path + image)
+void MainWindow::collectCurrentSkinFrames(QStringList &relPaths, QList<QImage> &images) const
+{
+    const QStringList states = {"Standing", "Walking", "Flying", "Hovering", "Captured", "AI_Processing"};
+    for (const QString &st : states)
+    {
+        PetSkin::StateInfo info = skin.state(st);
+        if (info.kind == PetSkin::StateInfo::Frames)
+        {
+            for (int i = 1; i <= info.frames; ++i)
+            {
+                QString path = skin.framePath(st, i);
+                if (path.isEmpty()) continue;
+                QImage img(path);
+                if (img.isNull()) continue;
+                relPaths << QString("%1/%1-%2.png").arg(st).arg(i);
+                images   << img;
+            }
+        }
+        else
+        {
+            QString path = skin.pngPath(st);     // ZH: gif 型也用其 png 靜圖 | EN: gif states use their png still
+            if (path.isEmpty()) continue;
+            QImage img(path);
+            if (img.isNull()) continue;
+            relPaths << (st + ".png");
+            images   << img;
+        }
+    }
+}
+
+void MainWindow::requestSkinGeneration()
+{
+    if (currentState == AI_Processing || !aiClient || aiClient->isBusy())
+        return;
+
+    // ZH: 1. 讓使用者上傳一張角色參考圖 | EN: 1. let the user pick a character reference image
+    const QString file = QFileDialog::getOpenFileName(
+        this, "選擇角色參考圖 (AI 生成皮膚)", QString(),
+        "圖片 Images (*.png *.jpg *.jpeg *.bmp *.webp)");
+    if (file.isEmpty())
+        return;     // ZH: 使用者取消 | EN: cancelled
+
+    QImage reference(file);
+    if (reference.isNull())
+    {
+        onAIError("AI Error: 無法讀取參考圖 (Cannot load reference image)");
+        return;
+    }
+
+    // ZH: 2. 收集當前皮膚的姿勢幀 (作為 ControlNet 骨架) | EN: 2. collect current skin frames as pose sources
+    QStringList relPaths;
+    QList<QImage> images;
+    collectCurrentSkinFrames(relPaths, images);
+    if (images.isEmpty())
+    {
+        onAIError("AI Error: no frames to generate from");
+        return;
+    }
+
+    // ZH: 3. 送出 (參考圖 + 姿勢幀) | EN: 3. send (reference + pose frames)
+    pendingSkinPaths = relPaths;
+    setState(AI_Processing);
+    showBusy(QString("AI 生成皮膚中…（%1 張，約需 30–60 秒）\n請保持 AI 後端運行").arg(images.size()));
+    aiClient->generateSkin(reference, images, aiPrompt);
+}
+
+void MainWindow::showBusy(const QString &text)
+{
+    if (!busyDialog)
+    {
+        busyDialog = new QProgressDialog(this);
+        busyDialog->setWindowTitle("YaChiYo");
+        busyDialog->setCancelButton(nullptr);        // ZH: 不提供取消 (請求無法中途中斷) | EN: no cancel (request can't be aborted mid-way)
+        busyDialog->setRange(0, 0);                  // ZH: 不確定進度 (忙碌動畫) | EN: indeterminate busy bar
+        busyDialog->setMinimumDuration(0);
+        busyDialog->setWindowModality(Qt::NonModal);
+        busyDialog->setWindowFlags((busyDialog->windowFlags() | Qt::WindowStaysOnTopHint)
+                                   & ~Qt::WindowCloseButtonHint);
+    }
+    busyDialog->setLabelText(text);
+    busyDialog->show();
+}
+
+void MainWindow::hideBusy()
+{
+    if (busyDialog)
+        busyDialog->hide();
+}
+
+void MainWindow::onSkinReady(QList<QImage> results)
+{
+    if (results.size() != pendingSkinPaths.size() || results.isEmpty())
+    {
+        onAIError("AI Error: skin frame count mismatch");
+        return;
+    }
+
+    // ZH: 新皮膚寫入執行檔同層的 skins/ (PetSkin::available 會掃到)
+    // EN: Write the new skin under <exe>/skins/ (picked up by PetSkin::available)
+    const QString id   = "ai_" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    const QString base = QCoreApplication::applicationDirPath() + "/skins/" + id;
+
+    QDir().mkpath(base);
+    for (int i = 0; i < results.size(); ++i)
+    {
+        const QString dest = base + "/" + pendingSkinPaths[i];
+        QDir().mkpath(QFileInfo(dest).absolutePath());   // ZH: 確保子目錄存在 (如 Walking/) | EN: ensure subdir exists
+        results[i].save(dest, "PNG");
+    }
+
+    // ZH: 沿用當前皮膚的 skin.json，只改名稱寫入新資料夾
+    // EN: Reuse the current skin.json, only rename, write into the new folder
+    QJsonObject root;
+    QFile srcJson(skin.dir() + "/skin.json");
+    if (srcJson.open(QIODevice::ReadOnly))
+    {
+        root = QJsonDocument::fromJson(srcJson.readAll()).object();
+        srcJson.close();
+    }
+    root["name"] = "AI: " + id;
+    QFile outJson(base + "/skin.json");
+    if (outJson.open(QIODevice::WriteOnly))
+    {
+        outJson.write(QJsonDocument(root).toJson());
+        outJson.close();
+    }
+
+    pendingSkinPaths.clear();
+    lastAIError.clear();
+    setState(Standing);
+    setSkin(id);            // ZH: 立即套用新皮膚並持久化 | EN: apply the new skin immediately and persist
+
+    hideBusy();
+    if (trayIcon)
+        trayIcon->showMessage("YaChiYo", "皮膚生成完成，已套用！", QSystemTrayIcon::Information, 4000);
 }
 
 //===============================================================================================

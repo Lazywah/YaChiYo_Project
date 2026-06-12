@@ -6,6 +6,9 @@
 #include <QMouseEvent>
 #include <QContextMenuEvent>
 #include <QSystemTrayIcon>
+#include <QImage>
+#include <QList>
+#include <QStringList>
 
 #include "settingscenter.h"
 #include "petphysics.h"
@@ -22,6 +25,7 @@ QT_END_NAMESPACE
 class QTimer;
 class QMenu;
 class QMovie;
+class QProgressDialog;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -140,9 +144,20 @@ private:
     void requestAIProcessing(const QString &prompt);
     QRect getCurrentScreenRect() const;
 
+    // ZH: AI 生成皮膚 | EN: AI skin generation
+    void requestSkinGeneration();
+    void collectCurrentSkinFrames(QStringList &relPaths, QList<QImage> &images) const;
+    QStringList pendingSkinPaths;   // ZH: 送出的幀對應的相對路徑 (寫回時用) | EN: target rel paths for the sent frames
+
+    // ZH: AI 處理中的提示視窗 | EN: Busy dialog shown during AI processing
+    QProgressDialog *busyDialog = nullptr;
+    void showBusy(const QString &text);
+    void hideBusy();
+
 private slots:
     void onAIResultReady(QPixmap result);
     void onAIError(QString errorMsg);
+    void onSkinReady(QList<QImage> results);
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event)  override;

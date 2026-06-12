@@ -112,9 +112,12 @@ uvicorn inference:app --host 127.0.0.1 --port 8000
 
 | 端點 | 用途 | 輸入 | 輸出 |
 |------|------|------|------|
-| `POST /transform` | 單張變身（右鍵「AI 變身」） | `{ image, prompt, seed? }` | `{ result, seed }` |
-| `POST /generate_skin` | 批次整套皮膚幀（固定 seed 保持一致） | `{ frames[], prompt, seed? }` | `{ results[], seed }` |
+| `POST /transform` | 單張變身（右鍵「AI 變身」，以自身為身份參考） | `{ image, prompt, negative_prompt?, seed? }` | `{ result, seed }` |
+| `POST /generate_skin` | 批次整套皮膚（`reference` = 角色身份，`frames` = 姿勢來源） | `{ frames[], reference?, prompt, negative_prompt?, seed?, ip_scale? }` | `{ results[], seed }` |
 | `GET /health` | 健康檢查 | — | `{ status, device, model }` |
+
+> **方法**：ControlNet Canny 從 `frames` 抽姿勢骨架，IP-Adapter 從 `reference` 取角色身份，
+> 配合預設負面提示詞抑制崩壞。有上傳參考圖時產出「你的角色」擺出各姿勢；沒有時以各幀自身為參考。
 
 ---
 
@@ -123,10 +126,15 @@ uvicorn inference:app --host 127.0.0.1 --port 8000
 | 變數 | 預設 | 說明 |
 |------|------|------|
 | `YACHIYO_MODEL` | `stablediffusionapi/anything-v5` | 基底模型（HF repo 或本機 .safetensors） |
-| `YACHIYO_STEPS` | `25` | 取樣步數（越高越精細但越慢） |
+| `YACHIYO_IP_SCALE` | `0.7` | IP-Adapter 身份還原強度（越高越像參考圖；太高會僵硬） |
+| `YACHIYO_NEGATIVE` | （內建一組） | 負面提示詞，抑制崩壞 |
+| `YACHIYO_STEPS` | `28` | 取樣步數（越高越精細但越慢） |
 | `YACHIYO_GUIDANCE` | `7.5` | 提示詞遵循強度 |
 | `YACHIYO_CANNY_LOW` / `_HIGH` | `100` / `200` | Canny 邊緣偵測閾值 |
-| `YACHIYO_MAX_SIDE` | `768` | 生成時最長邊上限（影響 VRAM 與速度） |
+| `YACHIYO_MAX_SIDE` | `640` | 生成時最長邊上限（影響 VRAM 與速度） |
+
+> **首次啟動會多下載 IP-Adapter 的影像編碼器（CLIP-ViT-H，約 2.5GB）**，存進 `hf-cache` 卷，只下載一次。
+> 改了 `inference.py` 後（已掛載進容器）只要 `docker compose restart` 即可生效，不必重建映像。
 
 ---
 

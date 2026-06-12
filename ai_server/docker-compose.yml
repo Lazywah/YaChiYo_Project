@@ -14,6 +14,9 @@ services:
       # EN: expose only to host's 127.0.0.1 (the pet app connects here), not to the network
       - "127.0.0.1:8000:8000"
     volumes:
+      # ZH: 掛載後端原始碼，微調後只要 docker compose restart 即可 (不必重建映像)
+      # EN: mount the backend source so tweaks only need a restart, not a rebuild
+      - ./inference.py:/app/inference.py
       # ZH: 本機單檔模型 (Civitai .safetensors) 放這 | EN: local single-file checkpoints here
       - ./models:/app/models
       # ZH: HuggingFace 模型快取持久化，避免每次重啟重新下載數 GB

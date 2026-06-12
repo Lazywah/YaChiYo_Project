@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-YaChiYo 皮膚 AI 後端 (FastAPI + Stable Diffusion + ControlNet Canny)
+YaChiYo 皮膚 AI 後端 (FastAPI + SD1.5 + ControlNet Canny + IP-Adapter)
 
-ZH: 以 ControlNet Canny 從來源圖抽邊緣當骨架，配合固定 seed，讓整套序列幀
-    在改變風格的同時保持姿勢與角色一致性 (避免每幀長得不一樣)。
-EN: Uses ControlNet Canny to keep pose/identity consistent across a frame set while
-    restyling, by extracting edges as the control map and reusing a fixed seed.
+設計 / Design:
+  - ControlNet Canny  : 從「姿勢來源圖」抽邊緣當骨架 (保持姿勢)
+  - IP-Adapter        : 從「參考圖」取角色身份/風格 (讓產物像你上傳的角色)
+  - Negative prompt   : 抑制動漫 SD1.5 常見的崩壞 (多手指/扭曲臉/壞解剖)
+  - 固定 seed         : 整套幀共用同一 seed，保持一致性
 
 端點 / Endpoints:
-  POST /transform      單張變身 (給右鍵「AI 變身」用)   { image, prompt, seed? } -> { result }
-  POST /generate_skin  批次整套皮膚幀 (固定 seed 保持一致) { frames[], prompt, seed? } -> { results[], seed }
+  POST /transform      單張變身 (以自身為參考)        { image, prompt, negative_prompt?, seed? } -> { result, seed }
+  POST /generate_skin  批次整套皮膚                    { frames[], reference?, prompt, negative_prompt?, seed?, ip_scale? } -> { results[], seed }
+  GET  /health         健康檢查
 
 啟動 / Run:
-  uvicorn inference:app --host 127.0.0.1 --port 8000
+  uvicorn inference:app --host 0.0.0.0 --port 8000
 """
 
 import os
@@ -26,6 +28,7 @@ from PIL import Image
 
 import torch
 from fastapi import FastAPI, Body
+from transformers import CLIPVisionModelWithProjection
 from diffusers import (
     StableDiffusionControlNetPipeline,
     ControlNetModel,
@@ -36,19 +39,25 @@ from diffusers import (
 # ZH: 設定 (可用環境變數覆寫) | EN: Configuration (overridable via env vars)
 # =============================================================================
 
-# ZH: 基底模型 — 可為 HuggingFace repo id，或本機單檔 .safetensors (Civitai 常見格式)
-# EN: Base model — a HuggingFace repo id, or a local single-file .safetensors (common on Civitai)
-#   動漫推薦 / anime picks: "stablediffusionapi/anything-v5"、"gsdf/Counterfeit-V2.5"
-#   或下載 Civitai 的 .safetensors 後設為其路徑 (例: "./models/anime.safetensors")
 MODEL_ID      = os.environ.get("YACHIYO_MODEL", "stablediffusionapi/anything-v5")
 CONTROLNET_ID = os.environ.get("YACHIYO_CONTROLNET", "lllyasviel/sd-controlnet-canny")
+IPADAPTER_ID  = os.environ.get("YACHIYO_IPADAPTER", "h94/IP-Adapter")
 
-# ZH: 生成參數 | EN: Generation params
-STEPS          = int(os.environ.get("YACHIYO_STEPS", "25"))
-GUIDANCE       = float(os.environ.get("YACHIYO_GUIDANCE", "7.5"))
-CANNY_LOW      = int(os.environ.get("YACHIYO_CANNY_LOW", "100"))
-CANNY_HIGH     = int(os.environ.get("YACHIYO_CANNY_HIGH", "200"))
-MAX_SIDE       = int(os.environ.get("YACHIYO_MAX_SIDE", "768"))   # ZH: 生成時最長邊上限 | EN: cap longest side at generation time
+STEPS      = int(os.environ.get("YACHIYO_STEPS", "28"))
+GUIDANCE   = float(os.environ.get("YACHIYO_GUIDANCE", "7.5"))
+IP_SCALE   = float(os.environ.get("YACHIYO_IP_SCALE", "0.7"))   # ZH: 身份還原強度 (越高越像參考圖) | EN: identity strength
+CANNY_LOW  = int(os.environ.get("YACHIYO_CANNY_LOW", "100"))
+CANNY_HIGH = int(os.environ.get("YACHIYO_CANNY_HIGH", "200"))
+MAX_SIDE   = int(os.environ.get("YACHIYO_MAX_SIDE", "640"))
+
+# ZH: 預設負面提示詞 — 抑制崩壞，是動漫 SD1.5 出好圖的關鍵 | EN: default negative prompt (critical for anime SD1.5)
+NEGATIVE_DEFAULT = os.environ.get(
+    "YACHIYO_NEGATIVE",
+    "lowres, worst quality, low quality, jpeg artifacts, blurry, "
+    "bad anatomy, bad hands, missing fingers, extra digit, fewer digits, extra limbs, "
+    "malformed limbs, fused fingers, mutated, deformed, disfigured, ugly, "
+    "extra arms, extra legs, cropped, watermark, text, signature",
+)
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DTYPE  = torch.float16 if DEVICE == "cuda" else torch.float32
@@ -61,26 +70,33 @@ print(f"[YaChiYo] device={DEVICE} dtype={DTYPE} model={MODEL_ID}")
 
 controlnet = ControlNetModel.from_pretrained(CONTROLNET_ID, torch_dtype=DTYPE)
 
+# ZH: IP-Adapter 需要的影像編碼器 (CLIP vision) | EN: CLIP vision encoder required by IP-Adapter
+image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+    IPADAPTER_ID, subfolder="models/image_encoder", torch_dtype=DTYPE
+)
+
 if MODEL_ID.endswith((".safetensors", ".ckpt")):
-    # ZH: 本機單檔模型 (Civitai) | EN: local single-file checkpoint (Civitai)
     pipe = StableDiffusionControlNetPipeline.from_single_file(
-        MODEL_ID, controlnet=controlnet, torch_dtype=DTYPE, safety_checker=None
+        MODEL_ID, controlnet=controlnet, image_encoder=image_encoder,
+        torch_dtype=DTYPE, safety_checker=None,
     )
 else:
-    # ZH: HuggingFace diffusers 倉庫 | EN: HuggingFace diffusers repo
     pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        MODEL_ID, controlnet=controlnet, torch_dtype=DTYPE, safety_checker=None
+        MODEL_ID, controlnet=controlnet, image_encoder=image_encoder,
+        torch_dtype=DTYPE, safety_checker=None,
     )
 
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-pipe = pipe.to(DEVICE)
 
-# ZH: 8GB VRAM 省記憶體設定 | EN: memory savers for 8GB VRAM
+# ZH: 掛載 IP-Adapter | EN: attach IP-Adapter
+pipe.load_ip_adapter(IPADAPTER_ID, subfolder="models", weight_name="ip-adapter_sd15.bin")
+pipe.set_ip_adapter_scale(IP_SCALE)
+
+pipe = pipe.to(DEVICE)
 if DEVICE == "cuda":
     pipe.enable_attention_slicing()
     pipe.enable_vae_slicing()
-    # ZH: 若仍 OOM，取消下行註解改用 CPU offload (較慢) | EN: uncomment if OOM (slower)
-    # pipe.enable_model_cpu_offload()
+    # pipe.enable_model_cpu_offload()   # ZH: 若 OOM 取消註解 | EN: uncomment if OOM
 
 app = FastAPI()
 
@@ -99,8 +115,7 @@ def pil_to_b64(img: Image.Image) -> str:
 
 
 def gen_size(w: int, h: int) -> tuple[int, int]:
-    """ZH: 計算生成尺寸：縮到最長邊 <= MAX_SIDE 且寬高為 8 的倍數
-       EN: Generation size: cap longest side at MAX_SIDE, round to multiples of 8."""
+    """ZH: 生成尺寸：最長邊 <= MAX_SIDE 且為 8 的倍數 | EN: gen size capped to MAX_SIDE, multiples of 8."""
     scale = min(1.0, MAX_SIDE / max(w, h))
     gw = max(8, int(round(w * scale / 8)) * 8)
     gh = max(8, int(round(h * scale / 8)) * 8)
@@ -108,32 +123,34 @@ def gen_size(w: int, h: int) -> tuple[int, int]:
 
 
 def make_canny(img: Image.Image, size: tuple[int, int]) -> Image.Image:
-    """ZH: 產生 Canny 邊緣控制圖 | EN: Build the Canny edge control image."""
-    resized = img.resize(size)
-    arr = np.array(resized)
+    arr = np.array(img.resize(size))
     edges = cv2.Canny(arr, CANNY_LOW, CANNY_HIGH)
-    edges = np.stack([edges] * 3, axis=-1)   # ZH: 單通道轉三通道 | EN: 1ch -> 3ch
+    edges = np.stack([edges] * 3, axis=-1)
     return Image.fromarray(edges)
 
 
-def restyle(img: Image.Image, prompt: str, seed: int) -> Image.Image:
-    """ZH: 單張圖以 ControlNet Canny 重繪 | EN: Restyle one image via ControlNet Canny."""
-    w, h = img.size
+def restyle(pose: Image.Image, prompt: str, seed: int,
+            reference: Image.Image, negative: str) -> Image.Image:
+    """ZH: 以 ControlNet Canny (姿勢) + IP-Adapter (身份) 重繪一張
+       EN: Restyle one image: pose from ControlNet Canny, identity from IP-Adapter."""
+    w, h = pose.size
     gw, gh = gen_size(w, h)
-    control = make_canny(img, (gw, gh))
+    control = make_canny(pose, (gw, gh))
     generator = torch.Generator(device=DEVICE).manual_seed(seed)
     out = pipe(
         prompt=prompt,
+        negative_prompt=negative,
         image=control,
+        ip_adapter_image=reference,
         num_inference_steps=STEPS,
         guidance_scale=GUIDANCE,
         generator=generator,
     ).images[0]
-    return out.resize((w, h))   # ZH: 還原為原始尺寸 | EN: back to original size
+    return out.resize((w, h))
 
 
 def pick_seed(data: dict) -> int:
-    if "seed" in data and data["seed"] is not None:
+    if data.get("seed") is not None:
         return int(data["seed"])
     return random.randint(0, 2**31 - 1)
 
@@ -143,24 +160,37 @@ def pick_seed(data: dict) -> int:
 
 @app.post("/transform")
 async def transform(data: dict = Body(...)):
-    """ZH: 單張變身 (給右鍵「AI 變身」) | EN: Single-image restyle (right-click "AI Transform")."""
+    """ZH: 單張變身，以輸入圖自身為身份參考 | EN: Single restyle, using the input as identity reference."""
     seed = pick_seed(data)
     img = b64_to_pil(data["image"])
-    result = restyle(img, data["prompt"], seed)
+    neg = data.get("negative_prompt") or NEGATIVE_DEFAULT
+    result = restyle(img, data["prompt"], seed, reference=img, negative=neg)
     return {"result": pil_to_b64(result), "seed": seed}
 
 
 @app.post("/generate_skin")
 async def generate_skin(data: dict = Body(...)):
-    """ZH: 批次生成整套皮膚幀，全部用同一 seed 以保持風格一致
-       EN: Batch-generate a whole frame set, all with the same seed for consistency."""
+    """ZH: 批次生成整套皮膚。有 reference 時用它當身份，否則以各幀自身為身份。
+       EN: Batch skin generation. Uses 'reference' as identity if given, else each frame itself."""
     seed = pick_seed(data)
     prompt = data["prompt"]
-    results = [pil_to_b64(restyle(b64_to_pil(f), prompt, seed)) for f in data["frames"]]
+    neg = data.get("negative_prompt") or NEGATIVE_DEFAULT
+
+    if "ip_scale" in data and data["ip_scale"] is not None:
+        pipe.set_ip_adapter_scale(float(data["ip_scale"]))
+
+    ref = b64_to_pil(data["reference"]) if data.get("reference") else None
+
+    results = []
+    for f in data["frames"]:
+        pose = b64_to_pil(f)
+        result = restyle(pose, prompt, seed, reference=(ref if ref is not None else pose), negative=neg)
+        results.append(pil_to_b64(result))
+
+    pipe.set_ip_adapter_scale(IP_SCALE)   # ZH: 還原預設 | EN: restore default
     return {"results": results, "seed": seed}
 
 
 @app.get("/health")
 async def health():
-    """ZH: 健康檢查 (供 Qt 端確認後端就緒) | EN: Health check (Qt can verify the backend is up)."""
     return {"status": "ok", "device": DEVICE, "model": MODEL_ID}
