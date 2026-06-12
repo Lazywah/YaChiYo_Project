@@ -13,6 +13,7 @@
 #include "aiclient.h"
 #include "petsound.h"
 #include "petsettings.h"
+#include "petskin.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -74,8 +75,6 @@ public:
     void setPetSkinType(int type);
 
 private:
-    struct AnimationConfig { int totalFrames; int intervalMs; };
-
     Ui::MainWindow *ui;
     SettingsCenter *settingsCenter;
     PetConfig       config;
@@ -85,6 +84,7 @@ private:
     PetBehavior behavior;
     AIClient   *aiClient = nullptr;
     PetSound   *sound    = nullptr;
+    PetSkin     skin;       // ZH: 當前皮膚 (資料驅動) | EN: Current skin (data-driven)
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;
@@ -103,9 +103,6 @@ private:
     int    petSkinType = 1;    // ZH: 皮膚模式 (0: 僅 PNG | 1: 優先使用 GIF) | EN: Skin mode (0: PNG only | 1: prefer GIF)
     double petScale    = 1.0;
     int    currentSetNumber = 0;
-    const QString imagePath        = ":/res/images/characterAnimation/";
-    const QString testImageSetPath = ":/res/images/testImageSet/";
-    QMap<State, AnimationConfig> animConfigs;
     QMovie *currentMovie = nullptr;
 
     // ZH: 計時器 | EN: Timers
@@ -122,7 +119,6 @@ private:
     QMenu           *trayMenu;
 
     // ZH: 初始化 | EN: Initialisation
-    void initAnimationConfigs();
     void initAllConnect();
     void initTrayIcon();
 

@@ -1,0 +1,13 @@
+{
+  "name": "預設皮膚 (Default)",
+  "author": "YaChiYo",
+  "scale": 250,
+  "states": {
+    "Standing":      { "type": "png" },
+    "Walking":       { "type": "frames", "frames": 6, "interval": 150 },
+    "Captured":      { "type": "gif" },
+    "Hovering":      { "type": "png", "fallback": "Standing" },
+    "Flying":        { "type": "png", "fallback": "Standing" },
+    "AI_Processing": { "type": "png", "fallback": "Standing" }
+  }
+}

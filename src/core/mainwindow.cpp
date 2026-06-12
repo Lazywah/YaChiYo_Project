@@ -11,7 +11,6 @@
 #include <QGuiApplication>
 #include <QTimer>
 #include <QToolTip>
-#include <QFile>
 
 //===============================================================================================
 
@@ -23,6 +22,9 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
     , config(config)
 {
     ui->setupUi(this);
+
+    // ZH: 載入內建預設皮膚（資料驅動，定義於 skin.json）| EN: Load the built-in default skin (data-driven via skin.json)
+    skin.load(":/res/skins/default");
 
     // ZH: 載入並套用持久化設定（須在計時器啟動前，確保 behaviorInterval 生效）
     // EN: Load & apply persisted settings before timers start (so behaviorInterval takes effect)
@@ -38,7 +40,6 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
     setWindowFlags(flags);
     setAttribute(Qt::WA_TranslucentBackground);
 
-    initAnimationConfigs();
     initAllConnect();
     initTrayIcon();
     setState(Standing);
@@ -47,11 +48,6 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
 //===============================================================================================
 
 //===============================================================================================
-
-void MainWindow::initAnimationConfigs()
-{
-    animConfigs[Walking] = {6, 150};
-}
 
 void MainWindow::initAllConnect()
 {
@@ -163,11 +159,12 @@ void MainWindow::updatePetSkin()
         currentMovie = nullptr;
     }
 
-    int scaledSize = static_cast<int>(250 * petScale);
+    int scaledSize = static_cast<int>(skin.scale() * petScale);
+    PetSkin::StateInfo info = skin.state(stateName);
 
-    // ZH: GIF 模式開啟且該狀態有對應 GIF 才播放動圖，否則退回 PNG | EN: Play GIF only when GIF mode is on and the file exists, otherwise fall back to PNG
-    QString gifPath = imagePath + stateName + ".gif";
-    if (petSkinType == 1 && QFile::exists(gifPath))
+    // ZH: GIF 模式開啟且該狀態為 gif 型且檔案存在才播放動圖 | EN: Play GIF only when GIF mode is on, the state is a gif type, and the file exists
+    QString gifPath = skin.gifPath(stateName);
+    if (petSkinType == 1 && info.kind == PetSkin::StateInfo::Gif && !gifPath.isEmpty())
     {
         currentMovie = new QMovie(gifPath);
 
@@ -189,23 +186,21 @@ void MainWindow::updatePetSkin()
         return;
     }
 
-    QPixmap pix;
-
-    if (animConfigs.contains(currentState) && currentSetNumber > 0)
-    {
-        QString path = QString("%1%2/%2-%3.png")
-                           .arg(testImageSetPath)
-                           .arg(stateName)
-                           .arg(currentSetNumber);
-        pix.load(path);
-    }
+    // ZH: 依序解析圖片路徑：序列幀 → 該狀態 png → 退回狀態 png → 預設 Standing
+    // EN: Resolve image path in order: frame → state png → fallback-state png → default Standing
+    QString path;
+    if (info.kind == PetSkin::StateInfo::Frames && currentSetNumber > 0)
+        path = skin.framePath(stateName, currentSetNumber);
     else
-    {
-        pix.load(imagePath + stateName + ".png");
-    }
+        path = skin.pngPath(stateName);
 
-    if (pix.isNull())
-        pix.load(imagePath + "Standing.png");
+    if (path.isEmpty())
+        path = skin.pngPath(skin.fallbackState(stateName));
+    if (path.isEmpty())
+        path = skin.pngPath("Standing");
+
+    QPixmap pix;
+    pix.load(path);
 
     if (qAbs(physics.currentVelocityX) > 0.1 && physics.currentVelocityX < -0.1)
         pix = QPixmap::fromImage(pix.toImage().flipped(Qt::Horizontal));
@@ -217,11 +212,11 @@ void MainWindow::updatePetSkin()
 
 void MainWindow::turnImageSet()
 {
-    if (!animConfigs.contains(currentState) || currentState == AI_Processing)
+    PetSkin::StateInfo info = skin.state(QMetaEnum::fromType<State>().valueToKey(currentState));
+    if (info.kind != PetSkin::StateInfo::Frames || currentState == AI_Processing)
         return;
 
-    int total = animConfigs[currentState].totalFrames;
-    currentSetNumber = (currentSetNumber % total) + 1;
+    currentSetNumber = (currentSetNumber % info.frames) + 1;
     updatePetSkin();
 }
 
@@ -242,12 +237,16 @@ void MainWindow::setState(MainWindow::State nextState)
     switch (currentState)
     {
     case Walking:
-        if (animConfigs.contains(currentState))
+    {
+        // ZH: 若皮膚為此狀態定義了序列幀，啟動切換計時器 | EN: Start frame timer if the skin defines frames for this state
+        PetSkin::StateInfo info = skin.state("Walking");
+        if (info.kind == PetSkin::StateInfo::Frames)
         {
             currentSetNumber = 1;
-            imageSwitchTimer->start(animConfigs[currentState].intervalMs);
+            imageSwitchTimer->start(info.interval);
         }
         break;
+    }
 
     case Hovering:
         physics.initHover(this->y());

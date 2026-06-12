@@ -36,6 +36,8 @@ set(PROJECT_SOURCES
         src/modules/petsettings.cpp
         src/modules/petautostart.h
         src/modules/petautostart.cpp
+        src/modules/petskin.h
+        src/modules/petskin.cpp
         resources/resources.qrc
 )
 

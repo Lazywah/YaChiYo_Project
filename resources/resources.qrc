@@ -3,16 +3,17 @@
     <qresource prefix="/res">
         <file>icons/app.png</file>
 
-        <file>images/characterAnimation/Standing.png</file>
-        <file>images/characterAnimation/Captured.png</file>
-
-        <file>images/characterAnimation/Captured.gif</file>
-
-        <file>images/testImageSet/Walking/Walking-1.png</file>
-        <file>images/testImageSet/Walking/Walking-2.png</file>
-        <file>images/testImageSet/Walking/Walking-3.png</file>
-        <file>images/testImageSet/Walking/Walking-4.png</file>
-        <file>images/testImageSet/Walking/Walking-5.png</file>
-        <file>images/testImageSet/Walking/Walking-6.png</file>
+        <!-- ZH: 預設皮膚 (內建)；自訂皮膚改放執行檔同層的 skins/ 目錄
+             EN: Default skin (built-in); custom skins go in skins/ next to the exe -->
+        <file>skins/default/skin.json</file>
+        <file>skins/default/Standing.png</file>
+        <file>skins/default/Captured.png</file>
+        <file>skins/default/Captured.gif</file>
+        <file>skins/default/Walking/Walking-1.png</file>
+        <file>skins/default/Walking/Walking-2.png</file>
+        <file>skins/default/Walking/Walking-3.png</file>
+        <file>skins/default/Walking/Walking-4.png</file>
+        <file>skins/default/Walking/Walking-5.png</file>
+        <file>skins/default/Walking/Walking-6.png</file>
     </qresource>
 </RCC>

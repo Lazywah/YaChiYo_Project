@@ -31,7 +31,7 @@ except ImportError:
 
 # ZH: 專案根目錄 = 本檔的上一層 | EN: Project root = parent of this file's dir
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SRC = ROOT / "resources/images/characterAnimation/Standing.png"
+DEFAULT_SRC = ROOT / "resources/skins/default/Standing.png"
 OUT_DIR = ROOT / "resources/icons"
 ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 
