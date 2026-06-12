@@ -40,11 +40,14 @@
 
 ## 14. 遠端連線桌面 [ ]
 
-## 15. 桌寵皮膚 AI (Skin AI) [ ]
-- 輸入角色原圖，自動生成整套狀態皮膚（含 Walking 序列幀），幀間風格一致
-- 技術路線：Stable Diffusion + ControlNet (Canny) + 固定 seed；`aiclient` 增加批次幀 API
-- 產出後自動存入 `resources/images/` 並重載 `animConfigs`
-- 前置：GPU ≥ 6GB VRAM、`inference.py` 改造為 ControlNet pipeline
+## 15. 桌寵皮膚系統 (Skin System)
+- **基礎建設**
+  - [x] 資料驅動皮膚格式（`PetSkin` + `skin.json`），格式說明見 `resources/skins/README.md`
+  - [x] 設定中心皮膚下拉選單 + 掃描 `skins/` 目錄 + `PetSettings` 記憶選擇
+- **皮膚 AI 生成 [ ]**（前置：GPU ≥ 6GB VRAM、`inference.py` 改造為 ControlNet pipeline）
+  - 輸入角色原圖，自動生成整套狀態皮膚（含 Walking 序列幀），幀間風格一致
+  - 技術路線：Stable Diffusion + ControlNet (Canny) + 固定 seed；`aiclient` 增加批次幀 API
+  - 產出直接寫成符合格式的 `<執行檔>/skins/<新皮膚>/` 資料夾（含自動產生的 `skin.json`），重開即出現在下拉選單
 
 ## 16. 工具 AI 群架構 (Tool AIs) [ ]
 - 每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關

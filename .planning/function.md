@@ -77,15 +77,17 @@ ai_server/
 
 ---
 
-## 5. 動畫系統
+## 5. 動畫與皮膚系統（資料驅動）
 
 | 功能 | 說明 | 相關檔案 |
 |------|------|----------|
-| 序列幀動畫 | Walking 使用 6 幀 PNG 序列幀 | `src/core/mainwindow.cpp` `turnImageSet()`、`resources/resources.qrc` |
-| AnimationConfig | `QMap<State, AnimationConfig>` 管理各狀態幀數與速度 | `src/core/mainwindow.h` |
-| 動態播放速度 | 動畫頻率隨移動速度調整（80~350ms） | `src/core/mainwindow.cpp` `updatePhysics()` Walking case |
-| GIF 動畫 | 狀態對應 GIF 存在且 GIF 模式開啟時播放（如 Captured.gif） | `src/core/mainwindow.cpp` `updatePetSkin()` |
-| 狀態切換自動重置 | `setState()` 停止計時器並重置 `currentSetNumber` | `src/core/mainwindow.cpp` `setState()` |
+| 資料驅動皮膚 | 每套皮膚 = 一資料夾 + `skin.json`，定義各狀態的 png/frames/gif；格式見 `resources/skins/README.md` | `src/modules/petskin.*`、`resources/skins/default/skin.json` |
+| 皮膚掃描 | 掃描內建 `:/res/skins/` 與使用者 `<執行檔>/skins/`，同 id 使用者覆蓋內建 | `src/modules/petskin.cpp` `PetSkin::available()` |
+| 皮膚切換 + 記憶 | 設定中心下拉選單切換，選擇存入 `PetSettings.currentSkin`，重啟自動套用 | `src/ui/settingscenter.cpp`、`src/core/mainwindow.cpp` `setSkin()` |
+| 序列幀動畫 | 幀數與間隔由 `skin.json` 定義（如 Walking 6 幀 / 150ms） | `src/core/mainwindow.cpp` `turnImageSet()` |
+| 動態播放速度 | 行走動畫頻率隨移動速度調整（80~350ms） | `src/core/mainwindow.cpp` `updatePhysics()` Walking case |
+| GIF 動畫 | 狀態為 gif 型且「GIF 動畫皮膚」開啟時播放（如 Captured.gif） | `src/core/mainwindow.cpp` `updatePetSkin()` |
+| 路徑解析與退回 | 序列幀 → 該狀態 png → fallback 狀態 → 預設 Standing | `src/modules/petskin.cpp`、`updatePetSkin()` |
 
 ---
 
