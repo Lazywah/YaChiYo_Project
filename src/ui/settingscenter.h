@@ -10,6 +10,7 @@ class SettingsCenter;
 class MainWindow;
 class QSlider;
 class QCheckBox;
+class QComboBox;
 
 class SettingsCenter : public QDialog
 {
@@ -31,7 +32,9 @@ private:
 
     void initSettingsInterface();   // ZH: 設定介面初始化邏輯 | EN: Settings interface initialization logic
     void initDeveloperInterface();  // ZH: 開發者介面初始化邏輯 | EN: Developer interface initialization logic
+    void populateSkinList();        // ZH: 重新掃描並填入皮膚下拉 (每次開啟刷新) | EN: rescan & fill the skin combo (refresh on open)
 
+    QComboBox *skinCombo = nullptr; // ZH: 皮膚下拉 (成員，供刷新用) | EN: skin combo (member, for refresh)
     QTimer *updateTimer;
 
 protected:

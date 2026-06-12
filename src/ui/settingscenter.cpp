@@ -49,13 +49,33 @@ SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
 
 //===============================================================================================
 
+void SettingsCenter::populateSkinList()
+{
+    if (!skinCombo) return;
+
+    // ZH: 阻擋訊號避免重填時誤觸發 setSkin | EN: block signals so refilling doesn't trigger setSkin
+    QSignalBlocker blocker(skinCombo);
+
+    const QString current = PetSettings::load().currentSkin;
+    skinCombo->clear();
+    for (const PetSkin::SkinEntry &e : PetSkin::available())
+    {
+        skinCombo->addItem(e.name, e.id);       // ZH: 顯示名稱，資料存 id | EN: display name, store id
+        if (e.id == current)
+            skinCombo->setCurrentIndex(skinCombo->count() - 1);
+    }
+}
+
 void SettingsCenter::showWindow()
 {
+    // ZH: 每次開啟重新掃描皮膚 (含剛生成的 AI 皮膚) | EN: rescan skins on open (incl. freshly generated AI skins)
+    populateSkinList();
+
     // ZH: 將視窗移至當前螢幕中央 | EN: Move window to center of current screen
     QScreen *screen = QGuiApplication::screenAt(mainApp->geometry().center());
     if (!screen)
         screen = QGuiApplication::primaryScreen();
-        
+
     QRect screenGeometry = screen->availableGeometry();
 
     //int x = (screenGeometry.width() - this->width()) / 2 + screenGeometry.left();
@@ -133,17 +153,11 @@ void SettingsCenter::initSettingsInterface()
     QFormLayout *appearanceLayout = new QFormLayout(appearanceGroup);
 
     // ZH: 皮膚選擇 (掃描內建 + 使用者 skins/ 目錄) | EN: Skin selection (scans built-in + user skins/)
-    QComboBox *skinCombo = new QComboBox;
-    const QList<PetSkin::SkinEntry> skins = PetSkin::available();
-    for (const PetSkin::SkinEntry &e : skins)
-    {
-        skinCombo->addItem(e.name, e.id);           // ZH: 顯示名稱，資料存 id | EN: display name, store id
-        if (e.id == s.currentSkin)
-            skinCombo->setCurrentIndex(skinCombo->count() - 1);
-    }
+    skinCombo = new QComboBox;
+    populateSkinList();
     appearanceLayout->addRow("皮膚 (Skin):", skinCombo);
 
-    connect(skinCombo, &QComboBox::currentIndexChanged, this, [this, skinCombo](int)
+    connect(skinCombo, &QComboBox::currentIndexChanged, this, [this](int)
     {
         mainApp->setSkin(skinCombo->currentData().toString());
     });
