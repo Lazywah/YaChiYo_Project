@@ -1,6 +1,6 @@
 # YaChiYo 桌寵專案 — 待實作功能清單
 
-> 最後更新：2026-04-26
+> 最後更新：2026-06-11
 
 ---
 
@@ -29,7 +29,8 @@
 
 ## 9. 疊層列表 (用於標示那些視窗不被桌寵覆蓋) [ ]
 
-## 10. Hovering 狀態應加上 Sin wave [ ]
+## 10. Hovering 狀態應加上 Sin wave [x]
+- 已於 `updatePhysics()` Hovering case 實作（`PetPhysics::calcHoverY()`，振幅 8px）
 
 ## 11. 所有圖示應經由圖生圖 AI 重新生成 [ ]
 
@@ -38,3 +39,14 @@
 ## 13. 資訊安全管理 (建立一個 AI 程式碼審核員，使用 LLM 進行 code review，以及安全性的風險評估，輸出一個報告讓我知道風險等級、以及如何修補) [ ]
 
 ## 14. 遠端連線桌面 [ ]
+
+## 15. 桌寵皮膚 AI (Skin AI) [ ]
+- 輸入角色原圖，自動生成整套狀態皮膚（含 Walking 序列幀），幀間風格一致
+- 技術路線：Stable Diffusion + ControlNet (Canny) + 固定 seed；`aiclient` 增加批次幀 API
+- 產出後自動存入 `resources/images/` 並重載 `animConfigs`
+- 前置：GPU ≥ 6GB VRAM、`inference.py` 改造為 ControlNet pipeline
+
+## 16. 工具 AI 群架構 (Tool AIs) [ ]
+- 每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關
+- 右鍵選單擴充「AI 工具」子選單
+- 涵蓋：遊戲助手、語言模型、AI 上網、AI 管家、程式碼審核員（Item 2~6、13 的架構基礎）
