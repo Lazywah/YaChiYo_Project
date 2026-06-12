@@ -1,0 +1,10 @@
+# ZH: 不要送進建置情境的東西 (加速建置、避免把大檔包進映像)
+# EN: keep these out of the build context (faster builds, no large files baked in)
+venv/
+.venv/
+models/
+__pycache__/
+*.pyc
+*.safetensors
+*.ckpt
+README.md

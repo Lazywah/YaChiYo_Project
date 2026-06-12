@@ -95,11 +95,14 @@ CMakeLists.txt.user*
 *.bin
 *.model
 *.weights
+*.safetensors
+*.ckpt
 
 # 資料集與訓練紀錄
 /datasets/
 /logs/
 /checkpoints/
+/ai_server/models/
 /resources/images/record/
 
 # Python 相關 (如果你用 Python 訓練 AI)

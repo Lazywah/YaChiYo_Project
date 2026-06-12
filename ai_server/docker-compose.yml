@@ -1,0 +1,38 @@
+# YaChiYo 皮膚 AI 後端 — Docker Compose
+#
+# 啟動： cd ai_server ; docker compose up --build
+# 停止： Ctrl+C ，或 docker compose down
+#
+# 前置：Docker Desktop (WSL2 後端) + NVIDIA 驅動。GPU 透過下方 deploy.devices 進入容器。
+
+services:
+  yachiyo-ai:
+    build: .
+    container_name: yachiyo-ai
+    ports:
+      # ZH: 只對 host 的 127.0.0.1 開放 (桌寵程式連這裡)，不對外網暴露
+      # EN: expose only to host's 127.0.0.1 (the pet app connects here), not to the network
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # ZH: 本機單檔模型 (Civitai .safetensors) 放這 | EN: local single-file checkpoints here
+      - ./models:/app/models
+      # ZH: HuggingFace 模型快取持久化，避免每次重啟重新下載數 GB
+      # EN: persist HuggingFace cache so multi-GB models aren't re-downloaded on restart
+      - hf-cache:/root/.cache/huggingface
+    environment:
+      # ZH: 基底模型 (動漫)；可改 HF repo id 或 ./models 下的 .safetensors 路徑
+      # EN: base model (anime); change to a HF repo id or a ./models/*.safetensors path
+      - YACHIYO_MODEL=stablediffusionapi/anything-v5
+      # - YACHIYO_MAX_SIDE=768
+      # - YACHIYO_STEPS=25
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  hf-cache:

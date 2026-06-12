@@ -1,0 +1,16 @@
+# YaChiYo 皮膚 AI 後端相依套件
+# 注意：PyTorch (CUDA 版) 請「不要」用這個檔安裝，改用 README 的專用指令，
+#       因為 CUDA 版需要指定 PyTorch 的下載來源 (--index-url)。
+#
+# 安裝其餘套件：
+#   pip install -r requirements.txt
+
+diffusers>=0.27
+transformers>=4.40
+accelerate>=0.30
+safetensors>=0.4
+opencv-python>=4.9
+numpy>=1.26
+pillow>=10.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
