@@ -1,0 +1,36 @@
+// ZH: Windows 應用程式資源檔 — 提供執行檔圖示與版本資訊
+// EN: Windows application resource — provides the .exe icon and version info
+
+// ZH: 執行檔圖示（檔案總管 / 工作列顯示）；路徑相對於本 .rc 檔
+// EN: Executable icon (shown in Explorer / taskbar); path is relative to this .rc
+IDI_ICON1 ICON "icons/app.ico"
+
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    0,1,0,0
+ PRODUCTVERSION 0,1,0,0
+ FILEFLAGSMASK  0x3fL
+ FILEFLAGS      0x0L
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"    // ZH: 美式英文 + Unicode | EN: US English + Unicode
+        BEGIN
+            VALUE "CompanyName",      "YaChiYo"
+            VALUE "FileDescription",  "YaChiYo Desktop Pet"
+            VALUE "FileVersion",      "0.1.0.0"
+            VALUE "InternalName",     "YaChiYo_Project"
+            VALUE "OriginalFilename", "YaChiYo_Project.exe"
+            VALUE "ProductName",      "YaChiYo Desktop Pet"
+            VALUE "ProductVersion",   "0.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
