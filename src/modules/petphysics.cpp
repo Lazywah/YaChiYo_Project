@@ -10,8 +10,9 @@ void PetPhysics::applyGravity(int &posY)
     posY += static_cast<int>(velocityY);
 }
 
-void PetPhysics::resolveGroundCollision(int &posY, int petHeight, const QRect &screenRect)
+bool PetPhysics::resolveGroundCollision(int &posY, int petHeight, const QRect &screenRect)
 {
+    bool wasGrounded = isGrounded;
     int groundY = screenRect.bottom() - petHeight;
 
     if (posY >= groundY)
@@ -32,9 +33,12 @@ void PetPhysics::resolveGroundCollision(int &posY, int petHeight, const QRect &s
     {
         isGrounded = false;
     }
+
+    // ZH: 由空中轉為落地的瞬間視為觸地事件 | EN: Transition airborne -> grounded is a landing event
+    return !wasGrounded && isGrounded;
 }
 
-void PetPhysics::resolveBoundaryCollision(int &posX, int petWidth, const QRect &screenRect)
+bool PetPhysics::resolveBoundaryCollision(int &posX, int petWidth, const QRect &screenRect)
 {
     int leftWall  = screenRect.left();
     int rightWall = screenRect.right() - petWidth;
@@ -44,7 +48,9 @@ void PetPhysics::resolveBoundaryCollision(int &posX, int petWidth, const QRect &
         posX = qBound(leftWall, posX, rightWall);
         currentVelocityX *= wallBounceFactor;
         targetVelocityX  *= wallBounceFactor;
+        return true;
     }
+    return false;
 }
 
 void PetPhysics::updateWalkVelocity(bool hasSteps)

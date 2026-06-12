@@ -67,6 +67,10 @@ void MainWindow::initAllConnect()
         connect(aiClient, &AIClient::resultReady,    this, &MainWindow::onAIResultReady);
         connect(aiClient, &AIClient::errorOccurred,  this, &MainWindow::onAIError);
     }
+
+    // ZH: 音效模組（檔案缺失時靜默，不影響運作）| EN: Sound module (silent if files are missing)
+    sound = new PetSound(this);
+    sound->setEnabled(config.soundEnabled);
 }
 
 //===============================================================================================
@@ -104,6 +108,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton)
     {
         setState(Captured);
+        if (sound) sound->playGrab();
         m_offset = event->globalPosition().toPoint() - this->pos();
         event->accept();
     }
@@ -130,6 +135,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         else
             setState(Standing);
 
+        if (sound) sound->playRelease();
         physicsTimer->start(16);
     }
 }
@@ -269,7 +275,8 @@ void MainWindow::updatePhysics()
     {
     case Standing:
         physics.applyGravity(posY);
-        physics.resolveGroundCollision(posY, height(), screenRect);
+        if (physics.resolveGroundCollision(posY, height(), screenRect) && sound)
+            sound->playLand();
         this->move(posX, posY);
         break;
 
@@ -288,7 +295,8 @@ void MainWindow::updatePhysics()
             }
 
             posX += static_cast<int>(physics.currentVelocityX);
-            physics.resolveBoundaryCollision(posX, width(), screenRect);
+            if (physics.resolveBoundaryCollision(posX, width(), screenRect) && sound)
+                sound->playWallHit();
 
             if (walkSteps > 0)
                 walkSteps--;
@@ -301,7 +309,8 @@ void MainWindow::updatePhysics()
         }
 
         physics.applyGravity(posY);
-        physics.resolveGroundCollision(posY, height(), screenRect);
+        if (physics.resolveGroundCollision(posY, height(), screenRect) && sound)
+            sound->playLand();
         this->move(posX, posY);
         break;
 

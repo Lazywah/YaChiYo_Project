@@ -11,6 +11,7 @@
 #include "petphysics.h"
 #include "petbehavior.h"
 #include "aiclient.h"
+#include "petsound.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -27,6 +28,7 @@ struct PetConfig
     bool physicsEnabled  = true;
     bool behaviorEnabled = true;
     bool aiEnabled       = true;
+    bool soundEnabled    = true;
 };
 
 class MainWindow : public QMainWindow
@@ -81,6 +83,7 @@ private:
     PetPhysics  physics;
     PetBehavior behavior;
     AIClient   *aiClient = nullptr;
+    PetSound   *sound    = nullptr;
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;

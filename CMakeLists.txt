@@ -12,6 +12,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
+# ZH: Multimedia 為可選元件，未安裝時音效模組自動降級為無聲 (見 petsound.cpp)
+# EN: Multimedia is optional; PetSound degrades to silent when it is absent (see petsound.cpp)
+find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS Multimedia)
+
 set(PROJECT_SOURCES
         src/main.cpp
         src/core/mainwindow.cpp
@@ -26,6 +30,8 @@ set(PROJECT_SOURCES
         src/modules/petbehavior.cpp
         src/modules/aiclient.h
         src/modules/aiclient.cpp
+        src/modules/petsound.h
+        src/modules/petsound.cpp
         resources/resources.qrc
 )
 
@@ -64,6 +70,15 @@ target_link_libraries(YaChiYo_Project PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
 )
+
+# ZH: 找得到 Multimedia 才連結並定義巨集，啟用實際音效 | EN: Link Multimedia and enable real audio only if found
+if(TARGET Qt${QT_VERSION_MAJOR}::Multimedia)
+    target_link_libraries(YaChiYo_Project PRIVATE Qt${QT_VERSION_MAJOR}::Multimedia)
+    target_compile_definitions(YaChiYo_Project PRIVATE YACHIYO_HAS_MULTIMEDIA)
+    message(STATUS "YaChiYo: Qt Multimedia found — sound enabled")
+else()
+    message(STATUS "YaChiYo: Qt Multimedia NOT found — sound disabled (install qt6-multimedia to enable)")
+endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

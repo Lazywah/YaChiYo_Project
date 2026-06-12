@@ -37,11 +37,13 @@ public:
     // ZH: 重力計算，修改 posY | EN: Apply gravity, modifies posY
     void applyGravity(int &posY);
 
-    // ZH: 地面碰撞，修改 posY / velocityY / isGrounded | EN: Ground collision, modifies posY / velocityY / isGrounded
-    void resolveGroundCollision(int &posY, int petHeight, const QRect &screenRect);
+    // ZH: 地面碰撞，修改 posY / velocityY / isGrounded；回傳 true 表示本次剛落地（觸地事件）
+    // EN: Ground collision; returns true on a fresh landing (airborne -> grounded)
+    bool resolveGroundCollision(int &posY, int petHeight, const QRect &screenRect);
 
-    // ZH: 左右邊界碰撞，修改 posX / velocityX | EN: Boundary collision, modifies posX / velocityX
-    void resolveBoundaryCollision(int &posX, int petWidth, const QRect &screenRect);
+    // ZH: 左右邊界碰撞，修改 posX / velocityX；回傳 true 表示本次碰到邊界
+    // EN: Boundary collision; returns true when a wall was hit this frame
+    bool resolveBoundaryCollision(int &posX, int petWidth, const QRect &screenRect);
 
     // ZH: 行走速度計算（加速 or 摩擦減速）| EN: Walk velocity update (accelerate or friction)
     void updateWalkVelocity(bool hasSteps);
