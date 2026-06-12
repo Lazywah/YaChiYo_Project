@@ -23,11 +23,18 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
     , config(config)
 {
     ui->setupUi(this);
+
+    // ZH: 載入並套用持久化設定（須在計時器啟動前，確保 behaviorInterval 生效）
+    // EN: Load & apply persisted settings before timers start (so behaviorInterval takes effect)
+    PetSettingsData saved = PetSettings::load();
+    applySettings(saved);
+
     settingsCenter = new SettingsCenter(this, this);
 
     Qt::WindowFlags flags = windowFlags();
     flags |= Qt::FramelessWindowHint;
-    flags |= Qt::WindowStaysOnTopHint;
+    if (saved.alwaysOnTop)              // ZH: 依設定決定是否置頂 | EN: Honour saved always-on-top
+        flags |= Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     setAttribute(Qt::WA_TranslucentBackground);
 
@@ -506,30 +513,61 @@ QRect MainWindow::getCurrentScreenRect() const
 }
 
 //===============================================================================================
-// ZH: 設定中心 Setter 實作 | EN: Settings Center setter implementations
+// ZH: 設定持久化 | EN: Settings persistence
 //===============================================================================================
 
-void MainWindow::setWalkSpeed(double speed)   { behavior.walkSpeed = speed; }
-void MainWindow::setGravity(double g)         { physics.gravity = g; }
-void MainWindow::setAiPrompt(const QString &prompt) { aiPrompt = prompt; }
+void MainWindow::applySettings(const PetSettingsData &s)
+{
+    behavior.walkSpeed = s.walkSpeed;
+    behaviorInterval   = s.behaviorInterval;
+    petScale           = s.petScale;
+    physics.gravity    = s.gravity;
+    petSkinType        = s.gifSkin ? 1 : 0;
+    aiPrompt           = s.aiPrompt;
+    // ZH: alwaysOnTop 由建構子直接套用至視窗旗標 | EN: alwaysOnTop is applied to window flags by the constructor
+}
+
+void MainWindow::saveSettings() const
+{
+    PetSettingsData s;
+    s.walkSpeed        = behavior.walkSpeed;
+    s.behaviorInterval = behaviorInterval;
+    s.petScale         = petScale;
+    s.gravity          = physics.gravity;
+    s.gifSkin          = (petSkinType == 1);
+    s.alwaysOnTop      = windowFlags().testFlag(Qt::WindowStaysOnTopHint);
+    s.aiPrompt         = aiPrompt;
+    PetSettings::save(s);
+}
+
+//===============================================================================================
+// ZH: 設定中心 Setter 實作（每次變更後即時存檔）| EN: Settings Center setters (persist on change)
+//===============================================================================================
+
+void MainWindow::setWalkSpeed(double speed)   { behavior.walkSpeed = speed; saveSettings(); }
+void MainWindow::setGravity(double g)         { physics.gravity = g;        saveSettings(); }
+void MainWindow::setAiPrompt(const QString &prompt) { aiPrompt = prompt;    saveSettings(); }
 
 void MainWindow::setBehaviorInterval(int ms)
 {
     behaviorInterval = ms;
     if (behaviorTimer && behaviorTimer->isActive())
         behaviorTimer->start(ms);
+    saveSettings();
 }
 
 void MainWindow::setPetScale(double scale)
 {
     petScale = scale;
     updatePetSkin();
+    saveSettings();
 }
 
 void MainWindow::setPetSkinType(int type)
 {
     petSkinType = type;
     updatePetSkin();
+    saveSettings();
 }
 
 void MainWindow::setAlwaysOnTop(bool onTop)
@@ -541,6 +579,7 @@ void MainWindow::setAlwaysOnTop(bool onTop)
         flags &= ~Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     show();
+    saveSettings();
 }
 
 MainWindow::~MainWindow()

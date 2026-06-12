@@ -32,6 +32,8 @@ set(PROJECT_SOURCES
         src/modules/aiclient.cpp
         src/modules/petsound.h
         src/modules/petsound.cpp
+        src/modules/petsettings.h
+        src/modules/petsettings.cpp
         resources/resources.qrc
 )
 

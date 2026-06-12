@@ -12,6 +12,7 @@
 #include "petbehavior.h"
 #include "aiclient.h"
 #include "petsound.h"
+#include "petsettings.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -124,6 +125,10 @@ private:
     void initAnimationConfigs();
     void initAllConnect();
     void initTrayIcon();
+
+    // ZH: 設定持久化 | EN: Settings persistence
+    void applySettings(const PetSettingsData &s);   // ZH: 套用載入的設定到各模組 | EN: Apply loaded settings to modules
+    void saveSettings() const;                      // ZH: 將目前狀態寫回儲存 | EN: Persist current state
 
     // ZH: 核心邏輯 | EN: Core logic
     void setState(State nextState);

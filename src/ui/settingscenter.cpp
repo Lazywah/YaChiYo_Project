@@ -18,6 +18,7 @@
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
 
 #include "mainwindow.h"
+#include "petsettings.h"
 
 SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     : QDialog(parent)
@@ -80,6 +81,9 @@ void SettingsCenter::initSettingsInterface()
     }
     mainLayout = new QVBoxLayout(ui->tab);
 
+    // ZH: 載入已儲存的設定，作為各控制項的初始值 | EN: Load persisted settings to initialise controls
+    PetSettingsData s = PetSettings::load();
+
     // ===== ZH: 行為設定群組 | EN: Behavior settings group =====
     QGroupBox *behaviorGroup = new QGroupBox("行為設定 (Behavior)", ui->tab);
     QFormLayout *behaviorLayout = new QFormLayout(behaviorGroup);
@@ -87,8 +91,8 @@ void SettingsCenter::initSettingsInterface()
     // ZH: 行走速度 (0.5 ~ 5.0) | EN: Walk speed (0.5 ~ 5.0)
     QSlider *walkSpeedSlider = new QSlider(Qt::Horizontal);
     walkSpeedSlider->setRange(5, 50);       // ZH: 實際值 = slider / 10.0 | EN: Actual value = slider / 10.0
-    walkSpeedSlider->setValue(20);           // ZH: 預設 2.0 | EN: Default 2.0
-    QLabel *walkSpeedLabel = new QLabel("2.0");
+    walkSpeedSlider->setValue(static_cast<int>(s.walkSpeed * 10));  // ZH: 載入存檔值 | EN: From saved value
+    QLabel *walkSpeedLabel = new QLabel(QString::number(s.walkSpeed, 'f', 1));
     QHBoxLayout *walkSpeedRow = new QHBoxLayout;
     walkSpeedRow->addWidget(walkSpeedSlider);
     walkSpeedRow->addWidget(walkSpeedLabel);
@@ -105,8 +109,8 @@ void SettingsCenter::initSettingsInterface()
     QSlider *intervalSlider = new QSlider(Qt::Horizontal);
     intervalSlider->setRange(1000, 15000);
     intervalSlider->setSingleStep(500);
-    intervalSlider->setValue(5000);          // ZH: 預設 5s | EN: Default 5s
-    QLabel *intervalLabel = new QLabel("5.0s");
+    intervalSlider->setValue(s.behaviorInterval);   // ZH: 載入存檔值 | EN: From saved value
+    QLabel *intervalLabel = new QLabel(QString::number(s.behaviorInterval / 1000.0, 'f', 1) + "s");
     QHBoxLayout *intervalRow = new QHBoxLayout;
     intervalRow->addWidget(intervalSlider);
     intervalRow->addWidget(intervalLabel);
@@ -127,8 +131,8 @@ void SettingsCenter::initSettingsInterface()
     // ZH: 桌寵大小 (50% ~ 200%) | EN: Pet scale (50% ~ 200%)
     QSlider *scaleSlider = new QSlider(Qt::Horizontal);
     scaleSlider->setRange(50, 200);
-    scaleSlider->setValue(100);             // ZH: 預設 100% | EN: Default 100%
-    QLabel *scaleLabel = new QLabel("100%");
+    scaleSlider->setValue(static_cast<int>(s.petScale * 100));  // ZH: 載入存檔值 | EN: From saved value
+    QLabel *scaleLabel = new QLabel(QString::number(static_cast<int>(s.petScale * 100)) + "%");
     QHBoxLayout *scaleRow = new QHBoxLayout;
     scaleRow->addWidget(scaleSlider);
     scaleRow->addWidget(scaleLabel);
@@ -142,7 +146,7 @@ void SettingsCenter::initSettingsInterface()
 
     // ZH: GIF 動畫皮膚模式 (關閉時僅使用 PNG) | EN: GIF skin mode (PNG only when off)
     QCheckBox *gifModeCheck = new QCheckBox("啟用 (Enabled)");
-    gifModeCheck->setChecked(true);         // ZH: 預設開啟，與 petSkinType 預設值一致 | EN: Default on, matches petSkinType default
+    gifModeCheck->setChecked(s.gifSkin);    // ZH: 載入存檔值 | EN: From saved value
     appearanceLayout->addRow("GIF 動畫皮膚 (GIF Skin):", gifModeCheck);
 
     connect(gifModeCheck, &QCheckBox::toggled, this, [this](bool checked)
@@ -159,8 +163,8 @@ void SettingsCenter::initSettingsInterface()
     // ZH: 重力強度 (0.1 ~ 3.0) | EN: Gravity strength (0.1 ~ 3.0)
     QSlider *gravitySlider = new QSlider(Qt::Horizontal);
     gravitySlider->setRange(1, 30);         // ZH: 實際值 = slider / 10.0 | EN: Actual value = slider / 10.0
-    gravitySlider->setValue(8);             // ZH: 預設 0.8 | EN: Default 0.8
-    QLabel *gravityLabel = new QLabel("0.8");
+    gravitySlider->setValue(static_cast<int>(s.gravity * 10));  // ZH: 載入存檔值 | EN: From saved value
+    QLabel *gravityLabel = new QLabel(QString::number(s.gravity, 'f', 1));
     QHBoxLayout *gravityRow = new QHBoxLayout;
     gravityRow->addWidget(gravitySlider);
     gravityRow->addWidget(gravityLabel);
@@ -181,7 +185,7 @@ void SettingsCenter::initSettingsInterface()
 
     // ZH: 是否置頂 | EN: Always on top
     QCheckBox *alwaysOnTopCheck = new QCheckBox("啟用 (Enabled)");
-    alwaysOnTopCheck->setChecked(true);     // ZH: 預設開啟 | EN: Default on
+    alwaysOnTopCheck->setChecked(s.alwaysOnTop);    // ZH: 載入存檔值 | EN: From saved value
     windowLayout->addRow("視窗置頂 (Always on Top):", alwaysOnTopCheck);
 
     connect(alwaysOnTopCheck, &QCheckBox::toggled, this, [this](bool checked)
@@ -196,7 +200,7 @@ void SettingsCenter::initSettingsInterface()
     QFormLayout *aiLayout = new QFormLayout(aiGroup);
 
     // ZH: AI 提示詞 | EN: AI Prompt
-    QLineEdit *promptEdit = new QLineEdit("transform this character into a new style");
+    QLineEdit *promptEdit = new QLineEdit(s.aiPrompt);  // ZH: 載入存檔值 | EN: From saved value
     aiLayout->addRow("AI 提示詞 (Prompt):", promptEdit);
 
     connect(promptEdit, &QLineEdit::textChanged, this, [this](const QString &text)
