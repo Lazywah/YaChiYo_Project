@@ -68,6 +68,7 @@ public:
     void setPetScale(double scale);
     void setAlwaysOnTop(bool onTop);
     void setAiPrompt(const QString &prompt);
+    void setPetSkinType(int type);
 
 private:
     struct AnimationConfig { int totalFrames; int intervalMs; };
@@ -95,7 +96,7 @@ private:
     QString aiPrompt = "transform this character into a new style";
 
     // ZH: 動畫 & 外觀 | EN: Animation & appearance
-    int    petSkinType = 0;
+    int    petSkinType = 1;    // ZH: 皮膚模式 (0: 僅 PNG | 1: 優先使用 GIF) | EN: Skin mode (0: PNG only | 1: prefer GIF)
     double petScale    = 1.0;
     int    currentSetNumber = 0;
     const QString imagePath        = ":/res/images/characterAnimation/";

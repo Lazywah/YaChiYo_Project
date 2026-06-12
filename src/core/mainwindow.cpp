@@ -152,30 +152,28 @@ void MainWindow::updatePetSkin()
 
     int scaledSize = static_cast<int>(250 * petScale);
 
+    // ZH: GIF 模式開啟且該狀態有對應 GIF 才播放動圖，否則退回 PNG | EN: Play GIF only when GIF mode is on and the file exists, otherwise fall back to PNG
     QString gifPath = imagePath + stateName + ".gif";
-    if (petSkinType == 1 || QFile::exists(gifPath))
+    if (petSkinType == 1 && QFile::exists(gifPath))
     {
-        if (QFile::exists(gifPath))
+        currentMovie = new QMovie(gifPath);
+
+        QPixmap tempPix(gifPath);
+        if (!tempPix.isNull())
         {
-            currentMovie = new QMovie(gifPath);
-
-            QPixmap tempPix(gifPath);
-            if (!tempPix.isNull())
-            {
-                QSize newSize = tempPix.size().scaled(scaledSize, scaledSize, Qt::KeepAspectRatio);
-                currentMovie->setScaledSize(newSize);
-            }
-            else
-            {
-                currentMovie->setScaledSize(QSize(scaledSize, scaledSize));
-            }
-
-            ui->label->setMovie(currentMovie);
-            currentMovie->start();
-            ui->label->adjustSize();
-            this->adjustSize();
-            return;
+            QSize newSize = tempPix.size().scaled(scaledSize, scaledSize, Qt::KeepAspectRatio);
+            currentMovie->setScaledSize(newSize);
         }
+        else
+        {
+            currentMovie->setScaledSize(QSize(scaledSize, scaledSize));
+        }
+
+        ui->label->setMovie(currentMovie);
+        currentMovie->start();
+        ui->label->adjustSize();
+        this->adjustSize();
+        return;
     }
 
     QPixmap pix;
@@ -516,6 +514,12 @@ void MainWindow::setBehaviorInterval(int ms)
 void MainWindow::setPetScale(double scale)
 {
     petScale = scale;
+    updatePetSkin();
+}
+
+void MainWindow::setPetSkinType(int type)
+{
+    petSkinType = type;
     updatePetSkin();
 }
 

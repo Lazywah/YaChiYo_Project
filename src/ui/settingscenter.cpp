@@ -140,6 +140,16 @@ void SettingsCenter::initSettingsInterface()
         mainApp->setPetScale(val / 100.0);
     });
 
+    // ZH: GIF 動畫皮膚模式 (關閉時僅使用 PNG) | EN: GIF skin mode (PNG only when off)
+    QCheckBox *gifModeCheck = new QCheckBox("啟用 (Enabled)");
+    gifModeCheck->setChecked(true);         // ZH: 預設開啟，與 petSkinType 預設值一致 | EN: Default on, matches petSkinType default
+    appearanceLayout->addRow("GIF 動畫皮膚 (GIF Skin):", gifModeCheck);
+
+    connect(gifModeCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setPetSkinType(checked ? 1 : 0);
+    });
+
     mainLayout->addWidget(appearanceGroup);
 
     // ===== ZH: 物理設定群組 | EN: Physics settings group =====
@@ -230,7 +240,7 @@ void SettingsCenter::refreshDebugInfo()
             hasChecked = true;
             QString key = item->text();
 
-            QVariant value = mainApp->property(key.toStdString().c_str());
+            QVariant value = mainApp->property(qPrintable(key));
 
             QString valStr;
             if (value.typeId() == QMetaType::Double)
