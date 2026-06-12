@@ -83,6 +83,10 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 
+# ZH: 打包產物 | EN: packaging output
+/dist/
+/tools/Output/
+
 # --- 桌寵專案 & AI 引擎 擴充建議 ---
 
 # AI 模型與權重檔案 (通常體積過大，不建議進 Git)
