@@ -44,10 +44,15 @@
 - **基礎建設**
   - [x] 資料驅動皮膚格式（`PetSkin` + `skin.json`），格式說明見 `resources/skins/README.md`
   - [x] 設定中心皮膚下拉選單 + 掃描 `skins/` 目錄 + `PetSettings` 記憶選擇
-- **皮膚 AI 生成 [ ]**（前置：GPU ≥ 6GB VRAM、`inference.py` 改造為 ControlNet pipeline）
-  - 輸入角色原圖，自動生成整套狀態皮膚（含 Walking 序列幀），幀間風格一致
-  - 技術路線：Stable Diffusion + ControlNet (Canny) + 固定 seed；`aiclient` 增加批次幀 API
-  - 產出直接寫成符合格式的 `<執行檔>/skins/<新皮膚>/` 資料夾（含自動產生的 `skin.json`），重開即出現在下拉選單
+- **皮膚 AI 生成**
+  - [x] 後端 Docker 化（FastAPI + SD1.5），設定見 `ai_server/README.md`
+  - [x] ControlNet Canny（姿勢）+ IP-Adapter（身份）+ 負面提示詞，固定 seed 保持一致
+  - [x] 右鍵「AI 生成皮膚 (上傳圖片)」：上傳參考圖 → 批次生成整套 → 寫成 `<執行檔>/skins/ai_<時間戳>/` 並即時套用
+  - [x] 生成中提示視窗 + 完成/失敗系統托盤通知
+  - [ ] 待改進：寫入位置改用使用者資料夾（避免 Program Files 權限問題）；Captured 動圖（gif）生成；產出後自動刷新設定中心下拉
+  - [ ] 待調校：IP_SCALE / 提示詞 / 步數的最佳預設（依實際生成品質微調）
+
+## 15b. 所有內建圖示經由皮膚 AI 重新生成 [ ]（原 Item 11，待皮膚 AI 品質穩定後執行）
 
 ## 16. 工具 AI 群架構 (Tool AIs) [ ]
 - 每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關

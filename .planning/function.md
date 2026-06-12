@@ -104,15 +104,20 @@ ai_server/
 
 ---
 
-## 7. AI 通訊模組（AIClient）
+## 7. AI 模組（AIClient + 皮膚 AI）
 
 | 功能 | 說明 | 相關檔案 |
 |------|------|----------|
-| Qt → Python HTTP POST | Label 畫面轉 Base64 + prompt，POST 至 `http://127.0.0.1:8000/transform` | `src/modules/aiclient.cpp` `sendRequest()` |
-| 結果 / 錯誤訊號 | `resultReady(QPixmap)` / `errorOccurred(QString)` 訊號回傳 | `src/modules/aiclient.h` |
-| 錯誤提示 | 錯誤經 `QToolTip` 顯示並存入 `lastAIError`（Developer 面板可監測） | `src/core/mainwindow.cpp` `onAIError()` |
-| 防重複請求 | `isBusy()` + AI_Processing 狀態雙重保護 | `src/modules/aiclient.cpp`、`src/core/mainwindow.cpp` |
-| Python 後端 | FastAPI + Stable Diffusion v1.5 Img2Img（strength=0.6） | `ai_server/inference.py` |
+| 單張變身（AI 變身） | 右鍵觸發，當前畫面 POST `/transform`，以自身為身份參考 | `src/modules/aiclient.cpp` `sendRequest()` |
+| 生成整套皮膚 | 右鍵「AI 生成皮膚 (上傳圖片)」→ 上傳參考圖 + 當前皮膚姿勢幀 → POST `/generate_skin` | `src/modules/aiclient.cpp` `generateSkin()`、`mainwindow.cpp` `requestSkinGeneration()` |
+| 寫入新皮膚 | 回傳整套寫成 `<執行檔>/skins/ai_<時間戳>/` + 複製改名的 `skin.json`，並 `setSkin()` 立即套用 | `src/core/mainwindow.cpp` `onSkinReady()` |
+| 訊號回傳 | `resultReady(QPixmap)` / `skinReady(QList<QImage>)` / `errorOccurred(QString)`；`pendingKind` 區分端點 | `src/modules/aiclient.h` |
+| 提示與通知 | 生成中 `QProgressDialog` 忙碌視窗，完成/失敗 `QSystemTrayIcon` 通知 + `QToolTip` | `src/core/mainwindow.cpp` `showBusy()`/`onSkinReady()`/`onAIError()` |
+| 防重複請求 | `isBusy()` + `AI_Processing` 狀態 + `decideNextAction` 守衛 | `src/modules/aiclient.cpp`、`src/core/mainwindow.cpp` |
+| Python 後端 | FastAPI + SD1.5 + **ControlNet Canny（姿勢）+ IP-Adapter（身份）+ 負面提示詞**，Docker 化執行 | `ai_server/inference.py`、`ai_server/docker-compose.yml` |
+
+> ⚠️ IP-Adapter 與 `enable_attention_slicing()` 衝突（會覆蓋其注意力處理器，報
+> `'tuple' object has no attribute 'shape'`）——後端僅用 `enable_vae_slicing()`，OOM 時改 `enable_model_cpu_offload()`。
 
 ---
 
