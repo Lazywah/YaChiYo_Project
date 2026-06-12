@@ -451,7 +451,7 @@ void MainWindow::initTrayIcon()
     trayIcon = new QSystemTrayIcon(this);
     trayMenu = new QMenu(this);
 
-    trayIcon->setIcon(QIcon(imagePath + "Standing.png"));
+    trayIcon->setIcon(QIcon(":/res/icons/app.png"));
     trayIcon->setToolTip("YaChiYo Desktop Pet");
 
     QAction *showAction = trayMenu->addAction("顯示桌寵 (Show Pet)");

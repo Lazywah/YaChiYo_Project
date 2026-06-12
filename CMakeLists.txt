@@ -39,6 +39,11 @@ set(PROJECT_SOURCES
         resources/resources.qrc
 )
 
+# ZH: Windows 專屬資源檔（執行檔圖示 + 版本資訊）| EN: Windows-only resource (exe icon + version info)
+if(WIN32)
+    list(APPEND PROJECT_SOURCES resources/app.rc)
+endif()
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(YaChiYo_Project
         MANUAL_FINALIZATION

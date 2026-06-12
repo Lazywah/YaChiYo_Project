@@ -1,6 +1,8 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/res">
+        <file>icons/app.png</file>
+
         <file>images/characterAnimation/Standing.png</file>
         <file>images/characterAnimation/Captured.png</file>
 

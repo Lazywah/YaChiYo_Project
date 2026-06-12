@@ -32,6 +32,8 @@ qrc_*.cpp
 Thumbs.db
 *.res
 *.rc
+# ZH: 手寫的 Windows 資源檔(exe 圖示/版本)，不可忽略 | EN: hand-written Windows resource (exe icon/version) — keep tracked
+!resources/app.rc
 /.qmake.cache
 /.qmake.stash
 
