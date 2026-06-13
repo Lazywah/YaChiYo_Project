@@ -87,6 +87,10 @@ CMakeLists.txt.user*
 /dist/
 /tools/Output/
 
+# ZH: 第三方 SDK (如 Live2D Cubism，體積大且含授權，自行下載放置)
+# EN: third-party SDKs (e.g. Live2D Cubism) — large + licensed, downloaded locally
+/third_party/
+
 # --- 桌寵專案 & AI 引擎 擴充建議 ---
 
 # AI 模型與權重檔案 (通常體積過大，不建議進 Git)
