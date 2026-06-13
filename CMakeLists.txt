@@ -91,6 +91,39 @@ else()
     message(STATUS "YaChiYo: Qt Multimedia NOT found — sound disabled (install qt6-multimedia to enable)")
 endif()
 
+# ===== Live2D Cubism (可選 / optional) =====
+# ZH: 偵測到 SDK 才整合，找不到時桌寵照常建置 (Live2D 停用)。
+#     MinGW 不能用 Core 的 MSVC 靜態庫，改直連 C-API 的 Live2DCubismCore.dll；GLEW 用 msys64 套件。
+# EN: Integrate only if the SDK is present. MinGW can't use the MSVC core libs, so we link the
+#     C-API Live2DCubismCore.dll directly; GLEW comes from the msys64 package.
+set(CUBISM_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/CubismSdkForNative-5-r.5")
+if(WIN32 AND EXISTS "${CUBISM_SDK_DIR}/Core/include/Live2DCubismCore.h")
+    set(CUBISM_CORE_DIR      "${CUBISM_SDK_DIR}/Core")
+    set(CUBISM_FRAMEWORK_DIR "${CUBISM_SDK_DIR}/Framework")
+    set(CUBISM_CORE_DLL      "${CUBISM_CORE_DIR}/dll/windows/x86_64/Live2DCubismCore.dll")
+
+    # ZH: Framework 由原始碼編成靜態庫，選用 OpenGL 渲染後端 | EN: Framework built from source, OpenGL backend
+    set(FRAMEWORK_SOURCE OpenGL)
+    add_subdirectory("${CUBISM_FRAMEWORK_DIR}" "${CMAKE_BINARY_DIR}/CubismFramework")
+
+    # ZH: Framework 非 Qt 目標，關掉 AUTOMOC/UIC/RCC 避免誤掃 | EN: not a Qt target — disable autogen
+    set_target_properties(Framework PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+
+    target_compile_definitions(Framework PUBLIC CSM_TARGET_WIN_GL)
+    # ZH: Framework 為 MSVC 取向的第三方碼，MinGW/g++ 較嚴格 (如 PROC→void*)，放行這類轉換
+    # EN: Framework is MSVC-oriented; g++ is stricter (e.g. PROC→void*) — permit such conversions
+    target_compile_options(Framework PRIVATE -fpermissive)
+    target_include_directories(Framework PUBLIC "${CUBISM_CORE_DIR}/include")
+    # ZH: 直連 Core DLL (已驗證 MinGW 可連) + msys64 GLEW + 系統 OpenGL
+    target_link_libraries(Framework "${CUBISM_CORE_DLL}" glew32 opengl32)
+
+    target_link_libraries(YaChiYo_Project PRIVATE Framework)
+    target_compile_definitions(YaChiYo_Project PRIVATE YACHIYO_HAS_LIVE2D)
+    message(STATUS "YaChiYo: Live2D Cubism SDK found — Live2D enabled")
+else()
+    message(STATUS "YaChiYo: Live2D Cubism SDK not found — Live2D disabled")
+endif()
+
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
