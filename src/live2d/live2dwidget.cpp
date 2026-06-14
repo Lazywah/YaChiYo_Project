@@ -288,18 +288,23 @@ bool Live2DWidget::loadModelNow()
         m_breath->SetParameters(breathParams);
     }
 
-    // ZH: 9. 載入 idle 動作群組 | EN: load the Idle motion group
+    // ZH: 9. 載入動作群組 (Idle + TapBody) | EN: load motion groups (Idle + TapBody)
     m_motionManager = new CubismMotionManager();
-    const csmInt32 idleCount = m_setting->GetMotionCount("Idle");
-    for (csmInt32 i = 0; i < idleCount; ++i)
-    {
-        QByteArray b = readFileBytes(m_modelDir + "/" + m_setting->GetMotionFileName("Idle", i));
-        if (b.isEmpty()) continue;
-        ACubismMotion *m = CubismMotion::Create(reinterpret_cast<const csmByte*>(b.constData()),
-                                                static_cast<csmSizeInt>(b.size()));
-        if (m) m_idleMotions.push_back(m);
-    }
-    qInfo("[Live2D] idle motions loaded: %d", static_cast<int>(m_idleMotions.size()));
+    auto loadGroup = [this](const char *group, QList<ACubismMotion*> &out) {
+        const csmInt32 count = m_setting->GetMotionCount(group);
+        for (csmInt32 i = 0; i < count; ++i)
+        {
+            QByteArray b = readFileBytes(m_modelDir + "/" + m_setting->GetMotionFileName(group, i));
+            if (b.isEmpty()) continue;
+            ACubismMotion *m = CubismMotion::Create(reinterpret_cast<const csmByte*>(b.constData()),
+                                                    static_cast<csmSizeInt>(b.size()));
+            if (m) out.push_back(m);
+        }
+    };
+    loadGroup("Idle", m_idleMotions);
+    loadGroup("TapBody", m_tapMotions);
+    qInfo("[Live2D] motions loaded: idle=%d tap=%d",
+          static_cast<int>(m_idleMotions.size()), static_cast<int>(m_tapMotions.size()));
 
     m_lastUpdateMs = QDateTime::currentMSecsSinceEpoch();
     m_model->GetModel()->Update();
@@ -362,12 +367,16 @@ void Live2DWidget::paintGL()
     if (m_breath)   m_breath->UpdateParameters(model, dt);     // ZH: 呼吸起伏 | EN: breathing
     if (m_pose)     m_pose->UpdateParameters(model, dt);       // ZH: 圖層姿勢 (互斥部件透明度) | EN: pose (part opacity)
 
-    // ZH: 看向移動方向 — 平滑轉頭/轉身/眼神 (疊加在動作之上) | EN: look toward direction — smooth head/body/eye turn (added on top)
-    m_faceCurrentX += (m_faceTargetX - m_faceCurrentX) * qMin(1.0f, dt * 6.0f);
+    // ZH: 看向方向 — 平滑轉頭/轉身/眼神 (X 水平、Y 上下，疊加在動作之上) | EN: look — smooth head/body/eye turn (X horiz, Y vert)
+    const float ease = qMin(1.0f, dt * 6.0f);
+    m_faceCurrentX += (m_faceTargetX - m_faceCurrentX) * ease;
+    m_faceCurrentY += (m_faceTargetY - m_faceCurrentY) * ease;
     CubismIdManager *ids = CubismFramework::GetIdManager();
     model->AddParameterValue(ids->GetId(ParamAngleX),     m_faceCurrentX * 30.0f);
+    model->AddParameterValue(ids->GetId(ParamAngleY),     m_faceCurrentY * 30.0f);
     model->AddParameterValue(ids->GetId(ParamBodyAngleX), m_faceCurrentX * 10.0f);
     model->AddParameterValue(ids->GetId(ParamEyeBallX),   m_faceCurrentX * 1.0f);
+    model->AddParameterValue(ids->GetId(ParamEyeBallY),   m_faceCurrentY * 1.0f);
 
     model->Update();
 
@@ -381,4 +390,13 @@ void Live2DWidget::paintGL()
 void Live2DWidget::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
+}
+
+void Live2DWidget::playTapBody()
+{
+    if (!m_motionManager || m_tapMotions.isEmpty())
+        return;
+    // ZH: 優先度 2 > idle 的 1，會中斷 idle 播放點擊動作 | EN: priority 2 > idle's 1, interrupts idle
+    int idx = QRandomGenerator::global()->bounded(m_tapMotions.size());
+    m_motionManager->StartMotionPriority(m_tapMotions[idx], false, 2);
 }

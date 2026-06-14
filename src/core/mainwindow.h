@@ -137,6 +137,7 @@ private:
 
     // ZH: 滑鼠拖曳 | EN: Mouse drag
     QPoint m_offset;
+    QPoint m_pressPos;     // ZH: 按下時的全域座標 (判斷點擊 vs 拖曳) | EN: press global pos (tap vs drag)
 
     // ZH: 系統托盤 | EN: System tray
     QSystemTrayIcon *trayIcon;

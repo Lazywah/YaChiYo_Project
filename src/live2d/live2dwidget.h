@@ -33,8 +33,11 @@ public:
 
     bool isModelLoaded() const { return m_model != nullptr; }
 
-    // ZH: 看向方向 (-1 左 ~ 0 正面 ~ +1 右)；轉頭/眼神而非鏡射 | EN: look direction (-1 left ~ 0 front ~ +1 right) via head/eye turn
-    void setLookDirection(float x) { m_faceTargetX = x; }
+    // ZH: 看向方向 (x: -1左~+1右, y: -1上~+1下)；轉頭/眼神而非鏡射 | EN: look direction via head/eye turn
+    void setLookDirection(float x, float y = 0.0f) { m_faceTargetX = x; m_faceTargetY = y; }
+
+    // ZH: 播放 TapBody 互動動作 (點擊身體時) | EN: play a TapBody interaction motion (on body tap)
+    void playTapBody();
 
 protected:
     void initializeGL() override;
@@ -52,11 +55,14 @@ private:
     Live2D::Cubism::Framework::CubismPose             *m_pose     = nullptr;  // ZH: 圖層姿勢 (互斥部件) | EN: pose (mutually-exclusive parts)
     Live2D::Cubism::Framework::CubismMotionManager    *m_motionManager = nullptr;  // ZH: 動作管理 | EN: motion manager
     QList<Live2D::Cubism::Framework::ACubismMotion*>   m_idleMotions;       // ZH: idle 動作清單 | EN: idle motions
+    QList<Live2D::Cubism::Framework::ACubismMotion*>   m_tapMotions;        // ZH: TapBody 動作清單 | EN: TapBody motions
     QList<unsigned int> m_textures;     // ZH: 已建立的 GL 紋理 id | EN: created GL texture ids
     QTimer  *m_timer = nullptr;         // ZH: 重繪計時器 | EN: repaint timer
     qint64   m_lastUpdateMs = 0;        // ZH: 上一幀時間戳，用於計算 deltaTime | EN: last frame timestamp for deltaTime
-    float    m_faceTargetX  = 0.0f;     // ZH: 目標看向方向 | EN: target look direction
-    float    m_faceCurrentX = 0.0f;     // ZH: 平滑後的看向方向 | EN: smoothed look direction
+    float    m_faceTargetX  = 0.0f;     // ZH: 目標看向 X | EN: target look X
+    float    m_faceTargetY  = 0.0f;     // ZH: 目標看向 Y | EN: target look Y
+    float    m_faceCurrentX = 0.0f;     // ZH: 平滑後看向 X | EN: smoothed look X
+    float    m_faceCurrentY = 0.0f;     // ZH: 平滑後看向 Y | EN: smoothed look Y
 
     QString m_modelDir;
     QString m_modelName;

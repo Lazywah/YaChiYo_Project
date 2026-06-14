@@ -150,7 +150,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     {
         setState(Captured);
         if (sound) sound->playGrab();
-        m_offset = event->globalPosition().toPoint() - this->pos();
+        m_offset   = event->globalPosition().toPoint() - this->pos();
+        m_pressPos = event->globalPosition().toPoint();   // ZH: 記錄按下位置 | EN: record press position
         event->accept();
     }
 }
@@ -160,6 +161,17 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
     if (event->buttons() & Qt::LeftButton)
     {
         move(event->globalPosition().toPoint() - m_offset);
+
+#ifdef YACHIYO_HAS_LIVE2D
+        // ZH: 拖曳時讓 Hiyori 看向滑鼠 (相對視窗中心) | EN: while dragging, look toward the cursor (relative to window center)
+        if (m_live2dMode && m_live2d)
+        {
+            QPointF c = event->globalPosition() - QPointF(this->x() + width() / 2.0, this->y() + height() / 2.0);
+            float nx = qBound(-1.0, c.x() / (width()  / 2.0), 1.0);
+            float ny = qBound(-1.0, c.y() / (height() / 2.0), 1.0);
+            m_live2d->setLookDirection(static_cast<float>(nx), static_cast<float>(ny));
+        }
+#endif
         event->accept();
     }
 }
@@ -168,6 +180,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
+        // ZH: 移動距離很小視為「點擊身體」→ 播 TapBody | EN: small movement = body tap → play TapBody
+        const bool isTap = (event->globalPosition().toPoint() - m_pressPos).manhattanLength() < 6;
+
         QRect screenRect = getCurrentScreenRect();
         int groundY = screenRect.bottom() - this->height();
 
@@ -178,6 +193,14 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
         if (sound) sound->playRelease();
         physicsTimer->start(16);
+
+#ifdef YACHIYO_HAS_LIVE2D
+        if (m_live2dMode && m_live2d)
+        {
+            m_live2d->setLookDirection(0.0f, 0.0f);   // ZH: 放開後回正面 | EN: reset to front on release
+            if (isTap) m_live2d->playTapBody();        // ZH: 點擊身體互動動作 | EN: body-tap interaction motion
+        }
+#endif
     }
 }
 
