@@ -120,8 +120,15 @@ QByteArray readFileBytes(const QString &path)
 Live2DWidget::Live2DWidget(QWidget *parent)
     : QOpenGLWidget(parent)
 {
-    // ZH: ~60FPS 重繪 (L1.4 靜態也需至少一次繪製，並為 L1.5 動畫鋪路)
-    // EN: ~60FPS repaint (static needs at least one paint; preps L1.5 animation)
+    // ZH: 要求帶 alpha 的 framebuffer，並讓背景透明 (角色懸浮桌面)
+    // EN: request an alpha framebuffer and make the background transparent (float on desktop)
+    QSurfaceFormat fmt = format();
+    fmt.setAlphaBufferSize(8);
+    setFormat(fmt);
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_NoSystemBackground);
+
+    // ZH: ~60FPS 重繪 | EN: ~60FPS repaint
     m_timer = new QTimer(this);
     connect(m_timer, &QTimer::timeout, this, QOverload<>::of(&Live2DWidget::update));
     m_timer->start(16);

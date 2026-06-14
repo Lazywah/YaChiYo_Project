@@ -36,6 +36,9 @@ int main(int argc, char *argv[])
             const QString name = QFileInfo(dir).fileName();   // ZH: 資料夾名即模型名 | EN: folder name = model name
             Live2DWidget *test = new Live2DWidget();
             test->setWindowTitle("Live2D Test — " + name);
+            // ZH: 無邊框 + 透明 + 置頂 + 不佔工作列 (懸浮桌面) | EN: frameless + translucent + on-top + tool
+            test->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
+            test->setAttribute(Qt::WA_TranslucentBackground);
             test->resize(600, 800);
             test->setModel(dir, name);
             test->show();
