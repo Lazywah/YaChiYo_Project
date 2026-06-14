@@ -325,20 +325,13 @@ void Live2DWidget::paintGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // ZH: 投影矩陣，依視窗長寬比縮放讓模型不變形 | EN: projection scaled by aspect to avoid distortion
+    // ZH: 投影矩陣 — 「貼合高度」：角色大小由視窗高度決定，左右多餘畫布留白裁掉
+    // EN: projection — fit to height: character size follows window height, extra side margins are cropped
     CubismMatrix44 projection;
     projection.LoadIdentity();
     const float w = static_cast<float>(width());
     const float h = static_cast<float>(height());
-    if (m_model->GetModel()->GetCanvasWidth() > 1.0f && w < h)
-    {
-        m_model->GetModelMatrix()->SetWidth(2.0f);
-        projection.Scale(1.0f, w / h);
-    }
-    else
-    {
-        projection.Scale(h / w, 1.0f);
-    }
+    projection.Scale(h / w, 1.0f);
     projection.MultiplyByMatrix(m_model->GetModelMatrix());
 
     // ZH: 計算與上一幀的時間差 (秒) | EN: delta time since last frame (seconds)

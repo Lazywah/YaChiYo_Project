@@ -100,6 +100,7 @@ private:
     // ZH: Live2D 模式 | EN: Live2D mode
     Live2DWidget *m_live2d   = nullptr;     // ZH: Live2D 渲染面 (取代 QLabel) | EN: Live2D surface (replaces QLabel)
     bool          m_live2dMode = false;
+    void applyLive2DSize();                 // ZH: 依 petScale 設定 Live2D 視窗大小 | EN: size the Live2D window by petScale
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;

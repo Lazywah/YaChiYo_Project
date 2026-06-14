@@ -64,7 +64,7 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
         setCentralWidget(m_live2d);
         const QString name = QFileInfo(config.live2dModelDir).fileName();
         m_live2d->setModel(config.live2dModelDir, name);
-        resize(350, 450);   // ZH: Live2D 角色視窗尺寸 (影響地面碰撞) | EN: Live2D window size (affects ground collision)
+        applyLive2DSize();   // ZH: 依 petScale 設定視窗大小 | EN: size by petScale
     }
 #endif
 
@@ -761,7 +761,17 @@ void MainWindow::setPetScale(double scale)
 {
     petScale = scale;
     updatePetSkin();
+    applyLive2DSize();   // ZH: Live2D 模式同步縮放視窗 | EN: also rescale the Live2D window
     saveSettings();
+}
+
+void MainWindow::applyLive2DSize()
+{
+    if (!m_live2dMode)
+        return;
+    // ZH: 基準窄高尺寸 × petScale | EN: base slim-tall size × petScale
+    const int baseW = 200, baseH = 440;
+    resize(static_cast<int>(baseW * petScale), static_cast<int>(baseH * petScale));
 }
 
 void MainWindow::setPetSkinType(int type)
