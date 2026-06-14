@@ -26,13 +26,21 @@ public:
     // ZH: 浮空 (Hovering) 狀態 | EN: Hovering state
     double hoverPhase = 0.0;
     int    hoverBaseY = 0;
-    const double hoverAmplitude = 8.0;
+    const double hoverAmplitude = 5.6;   // ZH: 浮動振幅 (原 8.0 調低 30%) | EN: hover amplitude (8.0 reduced by 30%)
     const double hoverSpeed     = 0.08;
 
     // ZH: 飛行 (Flying) 狀態 | EN: Flying state
     int flyTargetX = 0;
     int flyTargetY = 0;
     const double flySpeed = 1.5;
+
+    // ZH: 落地前緩速 + 空氣墊子停頓 | EN: pre-landing easing + air-cushion pause
+    const double landEaseRatio   = 0.20;       // ZH: 螢幕底算 20% 高度內開始緩速 | EN: ease within bottom 20% of screen height
+    const double landEaseMinKeep = 0.55;       // ZH: 最接近地面時每幀保留的速度比例 (越小=近地減速越強) | EN: velocity kept per frame near the ground
+    int          landPause = 0;                // ZH: 剩餘停頓影格數 | EN: remaining pause frames
+    bool         landPaused = false;           // ZH: 本次下落是否已停頓過 | EN: already paused this descent
+    const int    landPauseDuration = 12;       // ZH: 停頓時長 (~0.2s) | EN: pause duration
+    const double landPauseTriggerDist = 28.0;  // ZH: 距地多近觸發停頓 (空氣墊 18+10) | EN: distance to trigger pause
 
     // ZH: 重力計算，修改 posY | EN: Apply gravity, modifies posY
     void applyGravity(int &posY);

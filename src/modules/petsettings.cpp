@@ -22,6 +22,8 @@ PetSettingsData PetSettings::load()
     d.aiPrompt         = settings.value("aiPrompt",         d.aiPrompt).toString();
     d.currentSkin      = settings.value("currentSkin",      d.currentSkin).toString();
     d.movementEnabled  = settings.value("movementEnabled",  d.movementEnabled).toBool();
+    d.flyingEnabled    = settings.value("flyingEnabled",    d.flyingEnabled).toBool();
+    d.hoveringEnabled  = settings.value("hoveringEnabled",  d.hoveringEnabled).toBool();
     d.live2dMode       = settings.value("live2dMode",       d.live2dMode).toBool();
     d.live2dModelDir   = settings.value("live2dModelDir",   d.live2dModelDir).toString();
     d.live2dWidth      = settings.value("live2dWidth",      d.live2dWidth).toInt();
@@ -42,6 +44,8 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("aiPrompt",         d.aiPrompt);
     settings.setValue("currentSkin",      d.currentSkin);
     settings.setValue("movementEnabled",  d.movementEnabled);
+    settings.setValue("flyingEnabled",    d.flyingEnabled);
+    settings.setValue("hoveringEnabled",  d.hoveringEnabled);
     settings.setValue("live2dMode",       d.live2dMode);
     settings.setValue("live2dModelDir",   d.live2dModelDir);
     settings.setValue("live2dWidth",      d.live2dWidth);

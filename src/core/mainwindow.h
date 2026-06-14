@@ -84,6 +84,8 @@ public:
     void setPetSkinType(int type);
     void setSkin(const QString &id);    // ZH: 切換皮膚 (依 id) | EN: Switch skin by id
     void setMovementEnabled(bool on);   // ZH: 自動移動開關 | EN: auto-movement toggle
+    void setFlyingEnabled(bool on);     // ZH: 飛行開關 | EN: flying toggle
+    void setHoveringEnabled(bool on);   // ZH: 懸浮開關 | EN: hovering toggle
     void setLive2dWidth(int w);         // ZH: Live2D 視窗寬度 | EN: Live2D window width
     void setLive2dModeSetting(bool on); // ZH: Live2D 模式設定 (重啟生效，僅存設定) | EN: Live2D mode setting (restart-applied; saves only)
     bool isLive2dMode() const { return m_live2dMode; }   // ZH: 目前是否 Live2D 模式 | EN: currently in Live2D mode
@@ -107,8 +109,12 @@ private:
     int           m_live2dBaseW = 200;      // ZH: Live2D 視窗基準寬度 | EN: Live2D base window width
     void applyLive2DSize();                 // ZH: 依 petScale 設定 Live2D 視窗大小 | EN: size the Live2D window by petScale
 
-    // ZH: 自動移動開關 | EN: auto-movement toggle
+    // ZH: 自動移動 / 飛行 / 懸浮 開關 | EN: auto-movement / flying / hovering toggles
     bool m_movementEnabled = true;
+    bool m_flyingEnabled   = true;
+    bool m_hoveringEnabled = true;
+    // ZH: 可懸浮 = 飛行開 或 懸浮開 (飛行開連動懸浮開) | EN: can hover = flying on OR hovering on
+    bool canHover() const { return m_flyingEnabled || m_hoveringEnabled; }
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;

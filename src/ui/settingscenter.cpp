@@ -156,6 +156,31 @@ void SettingsCenter::initSettingsInterface()
         mainApp->setMovementEnabled(checked);
     });
 
+    // ZH: 飛行開關 (關閉時不會起飛；空中時會落地或改懸浮) | EN: flying toggle
+    QCheckBox *flyingCheck = new QCheckBox("啟用 (Enabled)");
+    flyingCheck->setChecked(s.flyingEnabled);
+    behaviorLayout->addRow("飛行 (Flying):", flyingCheck);
+
+    // ZH: 懸浮開關 (飛行開時連動開且不可改；飛行關時為獨立漂浮事件) | EN: hovering toggle (coupled+locked when flying on; independent when flying off)
+    QCheckBox *hoveringCheck = new QCheckBox("啟用 (Enabled)");
+    hoveringCheck->setChecked(s.flyingEnabled || s.hoveringEnabled);
+    hoveringCheck->setEnabled(!s.flyingEnabled);
+    behaviorLayout->addRow("懸浮 (Hovering):", hoveringCheck);
+
+    connect(flyingCheck, &QCheckBox::toggled, this, [this, hoveringCheck](bool checked)
+    {
+        mainApp->setFlyingEnabled(checked);
+        // ZH: 飛行開→懸浮連動開且鎖定；飛行關→懸浮恢復自身設定值可編輯 | EN: flying on → hovering forced on+locked; off → restore editable
+        hoveringCheck->setEnabled(!checked);
+        QSignalBlocker blocker(hoveringCheck);
+        hoveringCheck->setChecked(checked ? true : PetSettings::load().hoveringEnabled);
+    });
+
+    connect(hoveringCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setHoveringEnabled(checked);
+    });
+
     mainLayout->addWidget(behaviorGroup);
 
     // ===== ZH: 外觀設定群組 | EN: Appearance settings group =====

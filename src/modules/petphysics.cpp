@@ -5,6 +5,12 @@
 
 void PetPhysics::applyGravity(int &posY)
 {
+    // ZH: 空氣墊子停頓中 — 凍結不下落 | EN: during air-cushion pause — frozen, no falling
+    if (landPause > 0)
+    {
+        landPause--;
+        return;
+    }
     if (!isGrounded)
         velocityY += gravity;
     posY += static_cast<int>(velocityY);
@@ -15,19 +21,34 @@ bool PetPhysics::resolveGroundCollision(int &posY, int petHeight, const QRect &s
     bool wasGrounded = isGrounded;
     int groundY = screenRect.bottom() - petHeight;
 
+    double dist = groundY - posY;
+
+    // ZH: 落地前緩速 — 進入螢幕底算 20% 高度即開始；弧形反曲線：高處幾乎不減速、減速集中在接近地面才急遽增加。
+    //     以「接近地面程度 c」的平方計算 → 上段平緩、近地陡升。停頓前才減速；空氣墊停頓後恢復正常重力。
+    // EN: ease within bottom 20%; arc curve — almost no decel high up, decel concentrated near the ground (closeness²)
+    double landEaseDist = screenRect.height() * landEaseRatio;
+    if (!landPaused && velocityY > 0.0 && dist > 0.0 && dist < landEaseDist)
+    {
+        double c = 1.0 - (dist / landEaseDist);   // ZH: 0=區域頂端(高) 1=接近地面(低) | EN: 0 = top (high), 1 = near ground (low)
+        double factor = 1.0 - (1.0 - landEaseMinKeep) * (c * c);  // ZH: c² → 近地才急遽減速 | EN: c² → sharp decel only near ground
+        velocityY *= factor;
+    }
+
+    // ZH: 空氣墊子 — 快觸地時先停頓一下 (速度歸零)，再完全落下 | EN: air cushion — brief pause (v=0) just before landing
+    if (!isGrounded && !landPaused && landPause == 0 && velocityY > 0.0 && dist > 0.0 && dist < landPauseTriggerDist)
+    {
+        velocityY = 0.0;
+        landPause = landPauseDuration;
+        landPaused = true;
+    }
+
     if (posY >= groundY)
     {
-        if (qAbs(velocityY) > 1.5)
-        {
-            velocityY *= bounceFactor;
-            posY = groundY - 1;     // ZH: 稍微抬起，避免卡地板 | EN: Lift slightly to avoid floor clipping
-        }
-        else
-        {
-            posY = groundY;
-            velocityY = 0;
-            isGrounded = true;
-        }
+        // ZH: 直接落地，不彈跳 | EN: settle on the ground, no bounce
+        posY = groundY;
+        velocityY = 0;
+        isGrounded = true;
+        landPaused = false;   // ZH: 落地完成，重置供下次下落 | EN: landed — reset for next descent
     }
     else
     {
@@ -88,6 +109,8 @@ PetPhysics::FlyStep PetPhysics::calcFlyStep(int posX, int posY)
     if (dist < 5.0)
         return { posX, posY, true };
 
+    // ZH: 飛行單純朝目標直線移動 (不套 Sinwave；Sinwave 僅用於懸浮原地上下浮動)
+    // EN: fly straight toward target (no sinwave; sinwave is only for in-place hovering)
     return {
         posX + static_cast<int>((dx / dist) * flySpeed),
         posY + static_cast<int>((dy / dist) * flySpeed),
@@ -102,6 +125,7 @@ void PetPhysics::initHover(int currentY)
     velocityY        = 0;
     currentVelocityX = 0;
     isGrounded       = false;
+    landPause = 0; landPaused = false;   // ZH: 離地，重置空氣墊子 | EN: leaving ground — reset air cushion
 }
 
 void PetPhysics::initFly(const QRect &screenRect, int petWidth, int petHeight)
@@ -110,6 +134,7 @@ void PetPhysics::initFly(const QRect &screenRect, int petWidth, int petHeight)
     flyTargetY = QRandomGenerator::global()->bounded(screenRect.top() + 50, screenRect.bottom() - petHeight - 100);
     velocityY  = 0;
     isGrounded = false;
+    landPause = 0; landPaused = false;
 }
 
 void PetPhysics::resetVelocities()
@@ -117,4 +142,5 @@ void PetPhysics::resetVelocities()
     velocityY        = 0;
     currentVelocityX = 0;
     isGrounded       = false;
+    landPause = 0; landPaused = false;
 }

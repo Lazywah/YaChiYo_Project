@@ -25,6 +25,8 @@ struct PetSettingsData
     QString aiPrompt         = "transform this character into a new style"; // ZH: AI 提示詞 | EN: AI prompt
     QString currentSkin      = "default";   // ZH: 當前皮膚 id (skins/ 下的資料夾名) | EN: current skin id (folder name under skins/)
     bool    movementEnabled  = true;    // ZH: 自動移動(散步) 開關 | EN: auto-movement (wander) toggle
+    bool    flyingEnabled    = true;    // ZH: 飛行 開關 | EN: flying toggle
+    bool    hoveringEnabled  = true;    // ZH: 懸浮 開關 (飛行關時的獨立漂浮事件) | EN: hovering toggle (independent float when flying is off)
     bool    live2dMode       = false;   // ZH: Live2D 模式 (重啟生效) | EN: Live2D mode (applied on restart)
     QString live2dModelDir   = "";      // ZH: Live2D 模型資料夾 (空=用內建範例) | EN: Live2D model dir (empty = built-in sample)
     int     live2dWidth      = 200;     // ZH: Live2D 視窗基準寬度 | EN: Live2D base window width

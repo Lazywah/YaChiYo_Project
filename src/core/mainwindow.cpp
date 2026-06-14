@@ -186,7 +186,8 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         QRect screenRect = getCurrentScreenRect();
         int groundY = screenRect.bottom() - this->height();
 
-        if (this->y() < groundY - 10)
+        // ZH: 在空中放開 → 僅在「可懸浮」時懸浮，否則落地 | EN: released in air → hover only if allowed, else fall
+        if (canHover() && this->y() < groundY - 10)
             setState(Hovering);
         else
             setState(Standing);
@@ -443,6 +444,15 @@ void MainWindow::decideNextAction()
 
     if (currentState == Hovering || currentState == Flying)
     {
+        // ZH: 保險 — 飛行與懸浮皆關卻仍在空中，強制落地 | EN: safety — both off but airborne → force land
+        if (!canHover())
+        {
+            physics.velocityY = 0;
+            physics.isGrounded = false;
+            setState(Standing);
+            return;
+        }
+
         auto d = behavior.decideInAir();
         actionRoll = behavior.lastActionRoll;
 
@@ -453,8 +463,13 @@ void MainWindow::decideNextAction()
                 setState(Hovering);
             break;
         case PetBehavior::Decision::HoverFly:
-            setState(Standing);     // ZH: 先重置再進入 Flying | EN: Reset state before entering Flying
-            setState(Flying);
+            // ZH: 飛行關閉時不飛去新位置，維持原地懸浮 | EN: don't fly to a new spot when flying is off; stay hovering
+            if (!m_flyingEnabled)
+                break;
+            if (currentState == Flying)
+                physics.initFly(getCurrentScreenRect(), width(), height());  // ZH: 已在飛 → 直接挑新目標 | EN: already flying → just pick a new target
+            else
+                setState(Flying);    // ZH: 懸浮 → 進入飛行 | EN: hovering → enter flying
             break;
         case PetBehavior::Decision::HoverLand:
             physics.velocityY  = 0;
@@ -482,7 +497,17 @@ void MainWindow::decideNextAction()
         setState(Walking);
         break;
     case PetBehavior::Decision::Fly:
-        setState(Flying);
+        // ZH: 起飛事件：飛行開→飛行；飛行關但懸浮開→原地懸浮；皆關→站立
+        // EN: takeoff: flying on → fly; flying off but hovering on → hover in place; both off → stand
+        if (m_flyingEnabled)
+            setState(Flying);
+        else if (m_hoveringEnabled)
+            setState(Hovering);
+        else
+        {
+            physics.targetVelocityX = 0;
+            setState(Standing);
+        }
         break;
     case PetBehavior::Decision::Stand:
         physics.targetVelocityX = 0;
@@ -760,6 +785,8 @@ void MainWindow::applySettings(const PetSettingsData &s)
     petSkinType        = s.gifSkin ? 1 : 0;
     aiPrompt           = s.aiPrompt;
     m_movementEnabled  = s.movementEnabled;
+    m_flyingEnabled    = s.flyingEnabled;
+    m_hoveringEnabled  = s.hoveringEnabled;
     m_live2dBaseW      = s.live2dWidth;
     // ZH: alwaysOnTop 由建構子直接套用至視窗旗標 | EN: alwaysOnTop is applied to window flags by the constructor
 }
@@ -778,6 +805,8 @@ void MainWindow::saveSettings() const
     s.aiPrompt         = aiPrompt;
     s.currentSkin      = currentSkinId;
     s.movementEnabled  = m_movementEnabled;
+    s.flyingEnabled    = m_flyingEnabled;
+    s.hoveringEnabled  = m_hoveringEnabled;
     s.live2dWidth      = m_live2dBaseW;
     PetSettings::save(s);
 }
@@ -830,6 +859,41 @@ void MainWindow::setMovementEnabled(bool on)
         physics.targetVelocityX = 0;
         if (currentState == Walking || currentState == Flying || currentState == Hovering)
             setState(Standing);
+    }
+    saveSettings();
+}
+
+void MainWindow::setFlyingEnabled(bool on)
+{
+    m_flyingEnabled = on;
+    // ZH: 關閉飛行時若在空中(飛行或懸浮)：仍可懸浮→維持/改懸浮；否則落地
+    // EN: turning off while airborne (Flying or Hovering): keep/switch to hover if still allowed, else land
+    if (!on && (currentState == Flying || currentState == Hovering))
+    {
+        if (!canHover())
+        {
+            physics.velocityY = 0;
+            physics.isGrounded = false;
+            setState(Standing);
+        }
+        else if (currentState == Flying)
+        {
+            setState(Hovering);   // ZH: 飛行降為懸浮 | EN: demote flying to hovering
+        }
+        // ZH: 已在懸浮且仍可懸浮 → 維持 | EN: already hovering & still allowed → keep
+    }
+    saveSettings();
+}
+
+void MainWindow::setHoveringEnabled(bool on)
+{
+    m_hoveringEnabled = on;
+    // ZH: 關閉懸浮且不再可懸浮(飛行也關)時，若在空中則落地 | EN: if can no longer hover and airborne, land
+    if (!canHover() && (currentState == Hovering || currentState == Flying))
+    {
+        physics.velocityY = 0;
+        physics.isGrounded = false;
+        setState(Standing);
     }
     saveSettings();
 }
