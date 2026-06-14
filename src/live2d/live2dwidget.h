@@ -14,6 +14,8 @@ namespace Live2D { namespace Cubism { namespace Framework {
     class CubismEyeBlink;
     class CubismBreath;
     class CubismPose;
+    class CubismMotionManager;
+    class ACubismMotion;
 }}}
 
 // ZH: Live2D 角色渲染面 (L1.5：載入 + 渲染 + 自動眨眼/呼吸)
@@ -31,6 +33,9 @@ public:
 
     bool isModelLoaded() const { return m_model != nullptr; }
 
+    // ZH: 看向方向 (-1 左 ~ 0 正面 ~ +1 右)；轉頭/眼神而非鏡射 | EN: look direction (-1 left ~ 0 front ~ +1 right) via head/eye turn
+    void setLookDirection(float x) { m_faceTargetX = x; }
+
 protected:
     void initializeGL() override;
     void paintGL() override;
@@ -45,9 +50,13 @@ private:
     Live2D::Cubism::Framework::CubismEyeBlink         *m_eyeBlink = nullptr;  // ZH: 自動眨眼 | EN: auto blink
     Live2D::Cubism::Framework::CubismBreath           *m_breath   = nullptr;  // ZH: 呼吸 | EN: breathing
     Live2D::Cubism::Framework::CubismPose             *m_pose     = nullptr;  // ZH: 圖層姿勢 (互斥部件) | EN: pose (mutually-exclusive parts)
+    Live2D::Cubism::Framework::CubismMotionManager    *m_motionManager = nullptr;  // ZH: 動作管理 | EN: motion manager
+    QList<Live2D::Cubism::Framework::ACubismMotion*>   m_idleMotions;       // ZH: idle 動作清單 | EN: idle motions
     QList<unsigned int> m_textures;     // ZH: 已建立的 GL 紋理 id | EN: created GL texture ids
     QTimer  *m_timer = nullptr;         // ZH: 重繪計時器 | EN: repaint timer
     qint64   m_lastUpdateMs = 0;        // ZH: 上一幀時間戳，用於計算 deltaTime | EN: last frame timestamp for deltaTime
+    float    m_faceTargetX  = 0.0f;     // ZH: 目標看向方向 | EN: target look direction
+    float    m_faceCurrentX = 0.0f;     // ZH: 平滑後的看向方向 | EN: smoothed look direction
 
     QString m_modelDir;
     QString m_modelName;

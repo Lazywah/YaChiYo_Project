@@ -16,6 +16,7 @@
 #include <string>
 
 #include <QDateTime>
+#include <QRandomGenerator>
 
 #include <CubismFramework.hpp>
 #include <ICubismAllocator.hpp>
@@ -32,6 +33,8 @@
 #include <Effect/CubismEyeBlink.hpp>
 #include <Effect/CubismBreath.hpp>
 #include <Effect/CubismPose.hpp>
+#include <Motion/CubismMotion.hpp>
+#include <Motion/CubismMotionManager.hpp>
 #include <Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp>
 #include <Rendering/OpenGL/CubismOffscreenManager_OpenGLES2.hpp>
 
@@ -285,6 +288,19 @@ bool Live2DWidget::loadModelNow()
         m_breath->SetParameters(breathParams);
     }
 
+    // ZH: 9. 載入 idle 動作群組 | EN: load the Idle motion group
+    m_motionManager = new CubismMotionManager();
+    const csmInt32 idleCount = m_setting->GetMotionCount("Idle");
+    for (csmInt32 i = 0; i < idleCount; ++i)
+    {
+        QByteArray b = readFileBytes(m_modelDir + "/" + m_setting->GetMotionFileName("Idle", i));
+        if (b.isEmpty()) continue;
+        ACubismMotion *m = CubismMotion::Create(reinterpret_cast<const csmByte*>(b.constData()),
+                                                static_cast<csmSizeInt>(b.size()));
+        if (m) m_idleMotions.push_back(m);
+    }
+    qInfo("[Live2D] idle motions loaded: %d", static_cast<int>(m_idleMotions.size()));
+
     m_lastUpdateMs = QDateTime::currentMSecsSinceEpoch();
     m_model->GetModel()->Update();
     qInfo("[Live2D] model ready: %s (params=%d, drawables=%d)",
@@ -333,10 +349,33 @@ void Live2DWidget::paintGL()
 
     CubismModel *model = m_model->GetModel();
     model->LoadParameters();                        // ZH: 還原基準狀態 | EN: restore base state
+
+    // ZH: idle 動作 — 播完就隨機換一個 | EN: idle motion — pick a random one when finished
+    if (m_motionManager)
+    {
+        if (m_motionManager->IsFinished() && !m_idleMotions.isEmpty())
+        {
+            int idx = QRandomGenerator::global()->bounded(m_idleMotions.size());
+            m_motionManager->StartMotionPriority(m_idleMotions[idx], false, 1);
+        }
+        else
+        {
+            m_motionManager->UpdateMotion(model, dt);
+        }
+    }
+
     model->SaveParameters();
     if (m_eyeBlink) m_eyeBlink->UpdateParameters(model, dt);   // ZH: 自動眨眼 | EN: auto blink
     if (m_breath)   m_breath->UpdateParameters(model, dt);     // ZH: 呼吸起伏 | EN: breathing
     if (m_pose)     m_pose->UpdateParameters(model, dt);       // ZH: 圖層姿勢 (互斥部件透明度) | EN: pose (part opacity)
+
+    // ZH: 看向移動方向 — 平滑轉頭/轉身/眼神 (疊加在動作之上) | EN: look toward direction — smooth head/body/eye turn (added on top)
+    m_faceCurrentX += (m_faceTargetX - m_faceCurrentX) * qMin(1.0f, dt * 6.0f);
+    CubismIdManager *ids = CubismFramework::GetIdManager();
+    model->AddParameterValue(ids->GetId(ParamAngleX),     m_faceCurrentX * 30.0f);
+    model->AddParameterValue(ids->GetId(ParamBodyAngleX), m_faceCurrentX * 10.0f);
+    model->AddParameterValue(ids->GetId(ParamEyeBallX),   m_faceCurrentX * 1.0f);
+
     model->Update();
 
     OffscreenMgr *osm = OffscreenMgr::GetInstance();

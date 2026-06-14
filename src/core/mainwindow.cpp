@@ -385,6 +385,16 @@ void MainWindow::updatePhysics()
     default:
         break;
     }
+
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: Live2D 模式：看向移動方向 (轉頭/眼神，靜止時回正面) | EN: Live2D: look toward movement direction (front when idle)
+    if (m_live2dMode && m_live2d)
+    {
+        if (physics.currentVelocityX > 0.1)        m_live2d->setLookDirection(1.0f);
+        else if (physics.currentVelocityX < -0.1)  m_live2d->setLookDirection(-1.0f);
+        else                                       m_live2d->setLookDirection(0.0f);
+    }
+#endif
 }
 
 //===============================================================================================
