@@ -54,13 +54,18 @@
   - [ ] 待調校：IP_SCALE / 提示詞 / 步數的最佳預設（依實際生成品質微調）
   - 備註：此「擴散生成皮膚」保留為平行的**幀動畫**功能；「會動的角色」願景改走 Live2D（見下）
 
-## 15c. 會動的角色 — Live2D 路線 [ ]（設計藍圖見 `.planning/skin_animation_design.md`）
+## 15c. 會動的角色 — Live2D 路線（設計藍圖見 `.planning/skin_animation_design.md`）
 - 決策鏈：兩階段（外觀/動畫分離）→ 完全相同（變形而非生成）→ Live2D（業界標準）
 - 前提（已接受）：需要綁好骨的 Live2D 模型，非平面圖；AI 僅輔助拆層/補背（遠期）
-- L1 引擎整合（範例模型 + QOpenGLWidget + Cubism SDK，透明窗、眨眼/呼吸）
-- L2 行為接線（狀態 → Live2D 動作；PetPhysics 管視窗、Live2D 管角色）
-- L3 換上使用者自己的角色模型　L4（遠期）AI 輔助平面圖自動拆層綁骨
-- L1 前置（使用者動作）：下載 Cubism SDK for Native + 範例模型、同意免費授權
+- 程式碼：`src/live2d/live2dwidget.*`（QOpenGLWidget + Cubism）；CMake 可選式 `YACHIYO_HAS_LIVE2D`
+- 啟用方式：`YaChiYo_Project.exe --live2d`（整隻桌寵用 Live2D）/ `--live2d-test`（單獨測試窗）
+- [x] **L1 引擎整合**：Core DLL 直連(MinGW)、Framework 編譯、QOpenGLWidget 渲染 Hiyori、
+  透明懸浮窗、自動眨眼/呼吸、Pose 圖層、shader 從檔案載入(POST_BUILD 複製 DLL+shader)
+- [x] **L2 接進桌寵**：`--live2d` 模式、PetPhysics 驅動移動/拖曳、idle 動作播放、
+  走路看向方向(轉頭/眼神)、貼合高度投影、桌寵大小滑桿縮放
+- [ ] L2.4（中期）：拖曳看向滑鼠、TapBody 點擊動作、狀態→表情、Live2D 設定 UI
+- [ ] L3：換上使用者自己的角色模型（需在 Cubism Editor 綁骨 / 現成分層素材）
+- [ ] L4（遠期）：AI 輔助平面圖自動拆層綁骨
 
 ## 15b. 所有內建圖示經由皮膚 AI 重新生成 [ ]（原 Item 11，待皮膚 AI 品質穩定後執行）
 
