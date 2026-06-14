@@ -54,6 +54,25 @@ int main(int argc, char *argv[])
     // config.behaviorEnabled = false;
     // config.aiEnabled       = false;
 
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: 加參數 --live2d 讓整隻桌寵改用 Live2D 角色 (預設用 Hiyori 範例)
+    //     可選 --live2d=<模型資料夾> 指定其他模型
+    // EN: pass --live2d to run the full pet with a Live2D character (default Hiyori)
+    for (const QString &arg : a.arguments())
+    {
+        if (arg == "--live2d")
+        {
+            config.live2dEnabled  = true;
+            config.live2dModelDir = QStringLiteral(YACHIYO_LIVE2D_SAMPLE_DIR);
+        }
+        else if (arg.startsWith("--live2d="))
+        {
+            config.live2dEnabled  = true;
+            config.live2dModelDir = arg.section('=', 1);
+        }
+    }
+#endif
+
     MainWindow w(config);
     w.show();
 

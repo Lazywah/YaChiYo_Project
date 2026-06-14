@@ -26,6 +26,7 @@ class QTimer;
 class QMenu;
 class QMovie;
 class QProgressDialog;
+class Live2DWidget;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -35,6 +36,10 @@ struct PetConfig
     bool behaviorEnabled = true;
     bool aiEnabled       = true;
     bool soundEnabled    = true;
+
+    // ZH: Live2D 模式 (改用 Live2D 角色渲染，取代幀皮膚) | EN: Live2D mode (render a Live2D character instead of frame skins)
+    bool    live2dEnabled  = false;
+    QString live2dModelDir;     // ZH: 模型資料夾完整路徑 | EN: full path to the model folder
 };
 
 class MainWindow : public QMainWindow
@@ -91,6 +96,10 @@ private:
     PetSound   *sound    = nullptr;
     PetSkin     skin;                       // ZH: 當前皮膚 (資料驅動) | EN: Current skin (data-driven)
     QString     currentSkinId = "default";  // ZH: 當前皮膚 id | EN: Current skin id
+
+    // ZH: Live2D 模式 | EN: Live2D mode
+    Live2DWidget *m_live2d   = nullptr;     // ZH: Live2D 渲染面 (取代 QLabel) | EN: Live2D surface (replaces QLabel)
+    bool          m_live2dMode = false;
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;

@@ -22,6 +22,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#ifdef YACHIYO_HAS_LIVE2D
+#include "live2dwidget.h"
+#endif
+
 //===============================================================================================
 
 //===============================================================================================
@@ -49,6 +53,20 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
         flags |= Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     setAttribute(Qt::WA_TranslucentBackground);
+
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: Live2D 模式 — 用 Live2DWidget 取代 QLabel 渲染，PetPhysics 仍負責移動視窗
+    // EN: Live2D mode — replace the QLabel with a Live2DWidget; PetPhysics still moves the window
+    if (config.live2dEnabled && !config.live2dModelDir.isEmpty())
+    {
+        m_live2dMode = true;
+        m_live2d = new Live2DWidget(this);
+        setCentralWidget(m_live2d);
+        const QString name = QFileInfo(config.live2dModelDir).fileName();
+        m_live2d->setModel(config.live2dModelDir, name);
+        resize(350, 450);   // ZH: Live2D 角色視窗尺寸 (影響地面碰撞) | EN: Live2D window size (affects ground collision)
+    }
+#endif
 
     initAllConnect();
     initTrayIcon();
@@ -167,6 +185,10 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void MainWindow::updatePetSkin()
 {
+    // ZH: Live2D 模式由 Live2DWidget 自行渲染，跳過幀皮膚邏輯 | EN: Live2D mode renders itself; skip frame-skin logic
+    if (m_live2dMode)
+        return;
+
     QMetaEnum metaEnum = QMetaEnum::fromType<MainWindow::State>();
     QString stateName  = metaEnum.valueToKey(currentState);
 
