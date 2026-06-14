@@ -13,6 +13,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
     class CubismModelSettingJson;
     class CubismEyeBlink;
     class CubismBreath;
+    class CubismPose;
 }}}
 
 // ZH: Live2D 角色渲染面 (L1.5：載入 + 渲染 + 自動眨眼/呼吸)
@@ -43,6 +44,7 @@ private:
     Live2D::Cubism::Framework::CubismModelSettingJson *m_setting  = nullptr;
     Live2D::Cubism::Framework::CubismEyeBlink         *m_eyeBlink = nullptr;  // ZH: 自動眨眼 | EN: auto blink
     Live2D::Cubism::Framework::CubismBreath           *m_breath   = nullptr;  // ZH: 呼吸 | EN: breathing
+    Live2D::Cubism::Framework::CubismPose             *m_pose     = nullptr;  // ZH: 圖層姿勢 (互斥部件) | EN: pose (mutually-exclusive parts)
     QList<unsigned int> m_textures;     // ZH: 已建立的 GL 紋理 id | EN: created GL texture ids
     QTimer  *m_timer = nullptr;         // ZH: 重繪計時器 | EN: repaint timer
     qint64   m_lastUpdateMs = 0;        // ZH: 上一幀時間戳，用於計算 deltaTime | EN: last frame timestamp for deltaTime

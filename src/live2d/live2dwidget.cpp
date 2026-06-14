@@ -31,6 +31,7 @@
 #include <Type/csmVector.hpp>
 #include <Effect/CubismEyeBlink.hpp>
 #include <Effect/CubismBreath.hpp>
+#include <Effect/CubismPose.hpp>
 #include <Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp>
 #include <Rendering/OpenGL/CubismOffscreenManager_OpenGLES2.hpp>
 
@@ -236,7 +237,8 @@ bool Live2DWidget::loadModelNow()
     {
         QByteArray b = readFileBytes(m_modelDir + "/" + m_setting->GetPoseFileName());
         if (!b.isEmpty())
-            m_model->LoadPose(reinterpret_cast<const csmByte*>(b.constData()), static_cast<csmSizeInt>(b.size()));
+            // ZH: 自己持有 Pose 以便每幀更新 (管理互斥圖層透明度) | EN: hold pose ourselves to update it each frame
+            m_pose = CubismPose::Create(reinterpret_cast<const csmByte*>(b.constData()), static_cast<csmSizeInt>(b.size()));
     }
 
     // ZH: 4. layout | EN: layout
@@ -327,6 +329,7 @@ void Live2DWidget::paintGL()
     model->SaveParameters();
     if (m_eyeBlink) m_eyeBlink->UpdateParameters(model, dt);   // ZH: 自動眨眼 | EN: auto blink
     if (m_breath)   m_breath->UpdateParameters(model, dt);     // ZH: 呼吸起伏 | EN: breathing
+    if (m_pose)     m_pose->UpdateParameters(model, dt);       // ZH: 圖層姿勢 (互斥部件透明度) | EN: pose (part opacity)
     model->Update();
 
     OffscreenMgr *osm = OffscreenMgr::GetInstance();
