@@ -117,7 +117,17 @@ if(WIN32 AND EXISTS "${CUBISM_SDK_DIR}/Core/include/Live2DCubismCore.h")
     # ZH: 直連 Core DLL (已驗證 MinGW 可連) + msys64 GLEW + 系統 OpenGL
     target_link_libraries(Framework "${CUBISM_CORE_DLL}" glew32 opengl32)
 
-    target_link_libraries(YaChiYo_Project PRIVATE Framework)
+    # ZH: Live2D 渲染面需要 Qt OpenGLWidgets | EN: the Live2D surface needs Qt OpenGLWidgets
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGLWidgets)
+
+    # ZH: 只有啟用 Live2D 時才編譯渲染面原始碼 | EN: compile the Live2D surface only when enabled
+    target_sources(YaChiYo_Project PRIVATE
+        src/live2d/live2dwidget.h
+        src/live2d/live2dwidget.cpp
+    )
+    target_include_directories(YaChiYo_Project PRIVATE src/live2d)
+
+    target_link_libraries(YaChiYo_Project PRIVATE Framework Qt${QT_VERSION_MAJOR}::OpenGLWidgets)
     target_compile_definitions(YaChiYo_Project PRIVATE YACHIYO_HAS_LIVE2D)
     message(STATUS "YaChiYo: Live2D Cubism SDK found — Live2D enabled")
 else()
