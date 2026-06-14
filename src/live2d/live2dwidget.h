@@ -11,10 +11,12 @@ class QTimer;
 namespace Live2D { namespace Cubism { namespace Framework {
     class CubismUserModel;
     class CubismModelSettingJson;
+    class CubismEyeBlink;
+    class CubismBreath;
 }}}
 
-// ZH: Live2D 角色渲染面 (L1.4：完整載入並渲染靜態模型)
-// EN: Live2D character render surface (L1.4: full load + render static model)
+// ZH: Live2D 角色渲染面 (L1.5：載入 + 渲染 + 自動眨眼/呼吸)
+// EN: Live2D character render surface (L1.5: load + render + auto blink/breath)
 class Live2DWidget : public QOpenGLWidget
 {
     Q_OBJECT
@@ -37,10 +39,13 @@ private:
     bool loadModelNow();
     unsigned int loadTexture(const QString &path);   // ZH: PNG → GL 紋理 (用 QImage) | EN: PNG → GL texture via QImage
 
-    Live2D::Cubism::Framework::CubismUserModel        *m_model   = nullptr;
-    Live2D::Cubism::Framework::CubismModelSettingJson *m_setting = nullptr;
+    Live2D::Cubism::Framework::CubismUserModel        *m_model    = nullptr;
+    Live2D::Cubism::Framework::CubismModelSettingJson *m_setting  = nullptr;
+    Live2D::Cubism::Framework::CubismEyeBlink         *m_eyeBlink = nullptr;  // ZH: 自動眨眼 | EN: auto blink
+    Live2D::Cubism::Framework::CubismBreath           *m_breath   = nullptr;  // ZH: 呼吸 | EN: breathing
     QList<unsigned int> m_textures;     // ZH: 已建立的 GL 紋理 id | EN: created GL texture ids
-    QTimer *m_timer = nullptr;          // ZH: 重繪計時器 | EN: repaint timer
+    QTimer  *m_timer = nullptr;         // ZH: 重繪計時器 | EN: repaint timer
+    qint64   m_lastUpdateMs = 0;        // ZH: 上一幀時間戳，用於計算 deltaTime | EN: last frame timestamp for deltaTime
 
     QString m_modelDir;
     QString m_modelName;

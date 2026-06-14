@@ -15,19 +15,27 @@
 #include <cstring>
 #include <string>
 
+#include <QDateTime>
+
 #include <CubismFramework.hpp>
 #include <ICubismAllocator.hpp>
 #include <CubismModelSettingJson.hpp>
+#include <CubismDefaultParameterId.hpp>
+#include <Id/CubismIdManager.hpp>
 #include <Model/CubismUserModel.hpp>
 #include <Model/CubismModel.hpp>
 #include <Math/CubismModelMatrix.hpp>
 #include <Math/CubismMatrix44.hpp>
 #include <Type/csmMap.hpp>
 #include <Type/csmString.hpp>
+#include <Type/csmVector.hpp>
+#include <Effect/CubismEyeBlink.hpp>
+#include <Effect/CubismBreath.hpp>
 #include <Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp>
 #include <Rendering/OpenGL/CubismOffscreenManager_OpenGLES2.hpp>
 
 using namespace Csm;
+using namespace Csm::DefaultParameterId;
 using Renderer = Csm::Rendering::CubismRenderer_OpenGLES2;
 using OffscreenMgr = Csm::Rendering::CubismOffscreenManager_OpenGLES2;
 
@@ -252,6 +260,23 @@ bool Live2DWidget::loadModelNow()
     }
     r->IsPremultipliedAlpha(false);
 
+    // ZH: 7. 自動眨眼 (參數 id 由 model3.json 提供) | EN: auto eye-blink (param ids from model3.json)
+    m_eyeBlink = CubismEyeBlink::Create(m_setting);
+
+    // ZH: 8. 呼吸 (使用預設參數，讓身體/頭部自然起伏) | EN: breathing (default params for natural sway)
+    {
+        CubismIdManager *ids = CubismFramework::GetIdManager();
+        m_breath = CubismBreath::Create();
+        csmVector<CubismBreath::BreathParameterData> breathParams;
+        breathParams.PushBack(CubismBreath::BreathParameterData(ids->GetId(ParamAngleX),     0.0f, 15.0f, 6.5345f, 0.5f));
+        breathParams.PushBack(CubismBreath::BreathParameterData(ids->GetId(ParamAngleY),     0.0f,  8.0f, 3.5345f, 0.5f));
+        breathParams.PushBack(CubismBreath::BreathParameterData(ids->GetId(ParamAngleZ),     0.0f, 10.0f, 5.5345f, 0.5f));
+        breathParams.PushBack(CubismBreath::BreathParameterData(ids->GetId(ParamBodyAngleX), 0.0f,  4.0f, 15.5345f, 0.5f));
+        breathParams.PushBack(CubismBreath::BreathParameterData(ids->GetId(ParamBreath),     0.5f,  0.5f, 3.2345f, 1.0f));
+        m_breath->SetParameters(breathParams);
+    }
+
+    m_lastUpdateMs = QDateTime::currentMSecsSinceEpoch();
     m_model->GetModel()->Update();
     qInfo("[Live2D] model ready: %s (params=%d, drawables=%d)",
           qPrintable(m_modelName),
@@ -291,7 +316,18 @@ void Live2DWidget::paintGL()
     }
     projection.MultiplyByMatrix(m_model->GetModelMatrix());
 
-    m_model->GetModel()->Update();
+    // ZH: 計算與上一幀的時間差 (秒) | EN: delta time since last frame (seconds)
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    float dt = (m_lastUpdateMs > 0) ? (now - m_lastUpdateMs) / 1000.0f : 0.0f;
+    m_lastUpdateMs = now;
+    if (dt < 0.0f || dt > 0.5f) dt = 0.016f;   // ZH: 防止暫停後跳動 | EN: clamp after pauses
+
+    CubismModel *model = m_model->GetModel();
+    model->LoadParameters();                        // ZH: 還原基準狀態 | EN: restore base state
+    model->SaveParameters();
+    if (m_eyeBlink) m_eyeBlink->UpdateParameters(model, dt);   // ZH: 自動眨眼 | EN: auto blink
+    if (m_breath)   m_breath->UpdateParameters(model, dt);     // ZH: 呼吸起伏 | EN: breathing
+    model->Update();
 
     OffscreenMgr *osm = OffscreenMgr::GetInstance();
     osm->BeginFrameProcess();
