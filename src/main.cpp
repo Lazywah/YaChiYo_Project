@@ -4,6 +4,7 @@
 
 #ifdef YACHIYO_HAS_LIVE2D
 #include "live2dwidget.h"
+#include "petsettings.h"
 #include <QFileInfo>
 #endif
 
@@ -55,9 +56,17 @@ int main(int argc, char *argv[])
     // config.aiEnabled       = false;
 
 #ifdef YACHIYO_HAS_LIVE2D
-    // ZH: 加參數 --live2d 讓整隻桌寵改用 Live2D 角色 (預設用 Hiyori 範例)
-    //     可選 --live2d=<模型資料夾> 指定其他模型
-    // EN: pass --live2d to run the full pet with a Live2D character (default Hiyori)
+    // ZH: Live2D 模式來源：設定中心存檔(重啟生效) 或 命令列參數 | EN: Live2D mode from saved setting (restart-applied) or CLI arg
+    {
+        PetSettingsData saved = PetSettings::load();
+        if (saved.live2dMode)
+        {
+            config.live2dEnabled  = true;
+            config.live2dModelDir = saved.live2dModelDir.isEmpty()
+                                        ? QStringLiteral(YACHIYO_LIVE2D_SAMPLE_DIR) : saved.live2dModelDir;
+        }
+    }
+    // ZH: 命令列參數可強制開啟 (覆寫設定) | EN: CLI arg can force-enable (overrides setting)
     for (const QString &arg : a.arguments())
     {
         if (arg == "--live2d")

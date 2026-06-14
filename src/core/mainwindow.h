@@ -83,6 +83,10 @@ public:
     void setAiPrompt(const QString &prompt);
     void setPetSkinType(int type);
     void setSkin(const QString &id);    // ZH: 切換皮膚 (依 id) | EN: Switch skin by id
+    void setMovementEnabled(bool on);   // ZH: 自動移動開關 | EN: auto-movement toggle
+    void setLive2dWidth(int w);         // ZH: Live2D 視窗寬度 | EN: Live2D window width
+    void setLive2dModeSetting(bool on); // ZH: Live2D 模式設定 (重啟生效，僅存設定) | EN: Live2D mode setting (restart-applied; saves only)
+    bool isLive2dMode() const { return m_live2dMode; }   // ZH: 目前是否 Live2D 模式 | EN: currently in Live2D mode
 
 private:
     Ui::MainWindow *ui;
@@ -100,7 +104,11 @@ private:
     // ZH: Live2D 模式 | EN: Live2D mode
     Live2DWidget *m_live2d   = nullptr;     // ZH: Live2D 渲染面 (取代 QLabel) | EN: Live2D surface (replaces QLabel)
     bool          m_live2dMode = false;
+    int           m_live2dBaseW = 200;      // ZH: Live2D 視窗基準寬度 | EN: Live2D base window width
     void applyLive2DSize();                 // ZH: 依 petScale 設定 Live2D 視窗大小 | EN: size the Live2D window by petScale
+
+    // ZH: 自動移動開關 | EN: auto-movement toggle
+    bool m_movementEnabled = true;
 
     // ZH: 狀態機 | EN: State machine
     State currentState = Captured;

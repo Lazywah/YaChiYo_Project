@@ -21,6 +21,10 @@ PetSettingsData PetSettings::load()
     d.alwaysOnTop      = settings.value("alwaysOnTop",      d.alwaysOnTop).toBool();
     d.aiPrompt         = settings.value("aiPrompt",         d.aiPrompt).toString();
     d.currentSkin      = settings.value("currentSkin",      d.currentSkin).toString();
+    d.movementEnabled  = settings.value("movementEnabled",  d.movementEnabled).toBool();
+    d.live2dMode       = settings.value("live2dMode",       d.live2dMode).toBool();
+    d.live2dModelDir   = settings.value("live2dModelDir",   d.live2dModelDir).toString();
+    d.live2dWidth      = settings.value("live2dWidth",      d.live2dWidth).toInt();
 
     return d;
 }
@@ -37,4 +41,8 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("alwaysOnTop",      d.alwaysOnTop);
     settings.setValue("aiPrompt",         d.aiPrompt);
     settings.setValue("currentSkin",      d.currentSkin);
+    settings.setValue("movementEnabled",  d.movementEnabled);
+    settings.setValue("live2dMode",       d.live2dMode);
+    settings.setValue("live2dModelDir",   d.live2dModelDir);
+    settings.setValue("live2dWidth",      d.live2dWidth);
 }

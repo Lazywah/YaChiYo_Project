@@ -17,6 +17,7 @@
 #include <QGroupBox>            // ZH: 群組框 | EN: Group box
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
 #include <QComboBox>            // ZH: 下拉選單（皮膚選擇）| EN: Combo box (skin selection)
+#include <QPushButton>          // ZH: 按鈕（開發者全選）| EN: Button (developer select-all)
 #include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
 
 #include "mainwindow.h"
@@ -146,46 +147,86 @@ void SettingsCenter::initSettingsInterface()
         mainApp->setBehaviorInterval(val);
     });
 
+    // ZH: 移動開關 (關閉時不主動散步，但仍受重力/可拖曳) | EN: movement toggle (no wandering; gravity/drag still work)
+    QCheckBox *movementCheck = new QCheckBox("啟用 (Enabled)");
+    movementCheck->setChecked(s.movementEnabled);
+    behaviorLayout->addRow("自動移動 (Movement):", movementCheck);
+    connect(movementCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setMovementEnabled(checked);
+    });
+
     mainLayout->addWidget(behaviorGroup);
 
     // ===== ZH: 外觀設定群組 | EN: Appearance settings group =====
+    const bool live2d = mainApp->isLive2dMode();   // ZH: 目前是否 Live2D 模式 | EN: currently Live2D mode
+
     QGroupBox *appearanceGroup = new QGroupBox("外觀設定 (Appearance)", ui->tab);
     QFormLayout *appearanceLayout = new QFormLayout(appearanceGroup);
 
-    // ZH: 皮膚選擇 (掃描內建 + 使用者 skins/ 目錄) | EN: Skin selection (scans built-in + user skins/)
-    skinCombo = new QComboBox;
-    populateSkinList();
-    appearanceLayout->addRow("皮膚 (Skin):", skinCombo);
-
-    connect(skinCombo, &QComboBox::currentIndexChanged, this, [this](int)
+    // ZH: 皮膚 / GIF 僅在「幀皮膚」模式有效，Live2D 模式隱藏 | EN: skin/GIF only in frame mode; hidden in Live2D
+    if (!live2d)
     {
-        mainApp->setSkin(skinCombo->currentData().toString());
-    });
+        skinCombo = new QComboBox;
+        populateSkinList();
+        appearanceLayout->addRow("皮膚 (Skin):", skinCombo);
+        connect(skinCombo, &QComboBox::currentIndexChanged, this, [this](int)
+        {
+            mainApp->setSkin(skinCombo->currentData().toString());
+        });
+    }
 
-    // ZH: 桌寵大小 (50% ~ 200%) | EN: Pet scale (50% ~ 200%)
+    // ZH: 桌寵大小 (50% ~ 200%) — 兩種模式皆有效 | EN: Pet scale — works in both modes
     QSlider *scaleSlider = new QSlider(Qt::Horizontal);
     scaleSlider->setRange(50, 200);
-    scaleSlider->setValue(static_cast<int>(s.petScale * 100));  // ZH: 載入存檔值 | EN: From saved value
+    scaleSlider->setValue(static_cast<int>(s.petScale * 100));
     QLabel *scaleLabel = new QLabel(QString::number(static_cast<int>(s.petScale * 100)) + "%");
     QHBoxLayout *scaleRow = new QHBoxLayout;
     scaleRow->addWidget(scaleSlider);
     scaleRow->addWidget(scaleLabel);
     appearanceLayout->addRow("桌寵大小 (Pet Size):", scaleRow);
-
     connect(scaleSlider, &QSlider::valueChanged, this, [this, scaleLabel](int val)
     {
         scaleLabel->setText(QString::number(val) + "%");
         mainApp->setPetScale(val / 100.0);
     });
 
-    // ZH: GIF 動畫皮膚模式 (關閉時僅使用 PNG) | EN: GIF skin mode (PNG only when off)
-    QCheckBox *gifModeCheck = new QCheckBox("啟用 (Enabled)");
-    gifModeCheck->setChecked(s.gifSkin);    // ZH: 載入存檔值 | EN: From saved value
-    appearanceLayout->addRow("GIF 動畫皮膚 (GIF Skin):", gifModeCheck);
-
-    connect(gifModeCheck, &QCheckBox::toggled, this, [this](bool checked)
+    if (!live2d)
     {
-        mainApp->setPetSkinType(checked ? 1 : 0);
+        // ZH: GIF 動畫皮膚模式 (幀皮膚專用) | EN: GIF skin mode (frame-skin only)
+        QCheckBox *gifModeCheck = new QCheckBox("啟用 (Enabled)");
+        gifModeCheck->setChecked(s.gifSkin);
+        appearanceLayout->addRow("GIF 動畫皮膚 (GIF Skin):", gifModeCheck);
+        connect(gifModeCheck, &QCheckBox::toggled, this, [this](bool checked)
+        {
+            mainApp->setPetSkinType(checked ? 1 : 0);
+        });
+    }
+    else
+    {
+        // ZH: Live2D 視窗寬度 (Live2D 專用) | EN: Live2D window width (Live2D only)
+        QSlider *widthSlider = new QSlider(Qt::Horizontal);
+        widthSlider->setRange(120, 400);
+        widthSlider->setValue(s.live2dWidth);
+        QLabel *widthLabel = new QLabel(QString::number(s.live2dWidth) + "px");
+        QHBoxLayout *widthRow = new QHBoxLayout;
+        widthRow->addWidget(widthSlider);
+        widthRow->addWidget(widthLabel);
+        appearanceLayout->addRow("視窗寬度 (Window Width):", widthRow);
+        connect(widthSlider, &QSlider::valueChanged, this, [this, widthLabel](int val)
+        {
+            widthLabel->setText(QString::number(val) + "px");
+            mainApp->setLive2dWidth(val);
+        });
+    }
+
+    // ZH: Live2D 模式開關 (重啟生效) | EN: Live2D mode toggle (applied on restart)
+    QCheckBox *live2dCheck = new QCheckBox("啟用 (重啟生效 / restart to apply)");
+    live2dCheck->setChecked(s.live2dMode);
+    appearanceLayout->addRow("Live2D 模式 (Live2D Mode):", live2dCheck);
+    connect(live2dCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setLive2dModeSetting(checked);
     });
 
     mainLayout->addWidget(appearanceGroup);
@@ -245,21 +286,6 @@ void SettingsCenter::initSettingsInterface()
 
     mainLayout->addWidget(windowGroup);
 
-    // ===== ZH: AI 設定群組 | EN: AI settings group =====
-    QGroupBox *aiGroup = new QGroupBox("AI 設定 (AI)", ui->tab);
-    QFormLayout *aiLayout = new QFormLayout(aiGroup);
-
-    // ZH: AI 提示詞 | EN: AI Prompt
-    QLineEdit *promptEdit = new QLineEdit(s.aiPrompt);  // ZH: 載入存檔值 | EN: From saved value
-    aiLayout->addRow("AI 提示詞 (Prompt):", promptEdit);
-
-    connect(promptEdit, &QLineEdit::textChanged, this, [this](const QString &text)
-    {
-        mainApp->setAiPrompt(text);
-    });
-
-    mainLayout->addWidget(aiGroup);
-
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();
 }
@@ -277,6 +303,25 @@ void SettingsCenter::initDeveloperInterface()
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         item->setCheckState(Qt::Unchecked);
     }
+
+    // ZH: 在監測清單下方加「全選/全不選」按鈕 | EN: add a select-all/none button below the watch list
+    QPushButton *selectAllBtn = new QPushButton("全選 / 全不選 (Select All)");
+    QVBoxLayout *leftCol = new QVBoxLayout;
+    ui->horizontalLayout_2->removeWidget(ui->watchListWidget);
+    leftCol->addWidget(ui->watchListWidget);
+    leftCol->addWidget(selectAllBtn);
+    ui->horizontalLayout_2->insertLayout(0, leftCol);
+
+    connect(selectAllBtn, &QPushButton::clicked, this, [this]()
+    {
+        // ZH: 若全部已勾 → 全部取消，否則 → 全選 | EN: all checked → uncheck all, else check all
+        bool allChecked = true;
+        for (int i = 0; i < ui->watchListWidget->count(); ++i)
+            if (ui->watchListWidget->item(i)->checkState() != Qt::Checked) { allChecked = false; break; }
+        const Qt::CheckState target = allChecked ? Qt::Unchecked : Qt::Checked;
+        for (int i = 0; i < ui->watchListWidget->count(); ++i)
+            ui->watchListWidget->item(i)->setCheckState(target);
+    });
 }
 
 void SettingsCenter::refreshDebugInfo()

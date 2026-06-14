@@ -19,6 +19,7 @@
 #include <QProgressDialog>
 #include <QDateTime>
 #include <QCoreApplication>
+#include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -45,18 +46,9 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
     // ZH: 載入存檔指定的皮膚（資料驅動，定義於 skin.json）| EN: Load the saved skin (data-driven via skin.json)
     loadSkinById(saved.currentSkin);
 
-    settingsCenter = new SettingsCenter(this, this);
-
-    Qt::WindowFlags flags = windowFlags();
-    flags |= Qt::FramelessWindowHint;
-    if (saved.alwaysOnTop)              // ZH: 依設定決定是否置頂 | EN: Honour saved always-on-top
-        flags |= Qt::WindowStaysOnTopHint;
-    setWindowFlags(flags);
-    setAttribute(Qt::WA_TranslucentBackground);
-
 #ifdef YACHIYO_HAS_LIVE2D
-    // ZH: Live2D 模式 — 用 Live2DWidget 取代 QLabel 渲染，PetPhysics 仍負責移動視窗
-    // EN: Live2D mode — replace the QLabel with a Live2DWidget; PetPhysics still moves the window
+    // ZH: Live2D 模式 — 用 Live2DWidget 取代 QLabel 渲染 (須在建立 SettingsCenter 前設好 m_live2dMode)
+    // EN: Live2D mode — replace QLabel with a Live2DWidget (must set m_live2dMode before SettingsCenter is created)
     if (config.live2dEnabled && !config.live2dModelDir.isEmpty())
     {
         m_live2dMode = true;
@@ -67,6 +59,16 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
         applyLive2DSize();   // ZH: 依 petScale 設定視窗大小 | EN: size by petScale
     }
 #endif
+
+    // ZH: 設定中心須在 m_live2dMode 確定後建立 (其 UI 依模式不同) | EN: create after m_live2dMode is known (UI depends on it)
+    settingsCenter = new SettingsCenter(this, this);
+
+    Qt::WindowFlags flags = windowFlags();
+    flags |= Qt::FramelessWindowHint;
+    if (saved.alwaysOnTop)              // ZH: 依設定決定是否置頂 | EN: Honour saved always-on-top
+        flags |= Qt::WindowStaysOnTopHint;
+    setWindowFlags(flags);
+    setAttribute(Qt::WA_TranslucentBackground);
 
     initAllConnect();
     initTrayIcon();
@@ -86,7 +88,7 @@ void MainWindow::initAllConnect()
 
     behaviorTimer = new QTimer(this);
     connect(behaviorTimer, &QTimer::timeout, this, &MainWindow::decideNextAction);
-    if (config.behaviorEnabled)
+    if (config.behaviorEnabled && m_movementEnabled)   // ZH: 移動開關關閉時不啟動決策 | EN: don't start decisions if movement is off
         behaviorTimer->start(behaviorInterval);
 
     imageSwitchTimer = new QTimer(this);
@@ -663,6 +665,16 @@ void MainWindow::initTrayIcon()
         settingsCenter->showWindow();
     });
 
+    // ZH: 重啟桌寵 (套用「重啟生效」的設定，如 Live2D 模式) | EN: restart pet (apply restart-only settings like Live2D mode)
+    QAction *restartAction = trayMenu->addAction("重啟桌寵 (Restart)");
+    connect(restartAction, &QAction::triggered, this, []()
+    {
+        QStringList args = QCoreApplication::arguments();
+        if (!args.isEmpty()) args.removeFirst();   // ZH: 去掉程式路徑 | EN: drop argv[0]
+        QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
+        QCoreApplication::quit();
+    });
+
     trayMenu->addSeparator();
 
     QAction *quitAction = trayMenu->addAction("退出程式 (Quit)");
@@ -724,12 +736,16 @@ void MainWindow::applySettings(const PetSettingsData &s)
     physics.gravity    = s.gravity;
     petSkinType        = s.gifSkin ? 1 : 0;
     aiPrompt           = s.aiPrompt;
+    m_movementEnabled  = s.movementEnabled;
+    m_live2dBaseW      = s.live2dWidth;
     // ZH: alwaysOnTop 由建構子直接套用至視窗旗標 | EN: alwaysOnTop is applied to window flags by the constructor
 }
 
 void MainWindow::saveSettings() const
 {
-    PetSettingsData s;
+    // ZH: 先載入既有設定，只覆寫「執行期可變」欄位 → 保留重啟生效欄位 (live2dMode/live2dModelDir)
+    // EN: load existing first, override only runtime-mutable fields → preserves restart-applied fields
+    PetSettingsData s = PetSettings::load();
     s.walkSpeed        = behavior.walkSpeed;
     s.behaviorInterval = behaviorInterval;
     s.petScale         = petScale;
@@ -738,6 +754,8 @@ void MainWindow::saveSettings() const
     s.alwaysOnTop      = windowFlags().testFlag(Qt::WindowStaysOnTopHint);
     s.aiPrompt         = aiPrompt;
     s.currentSkin      = currentSkinId;
+    s.movementEnabled  = m_movementEnabled;
+    s.live2dWidth      = m_live2dBaseW;
     PetSettings::save(s);
 }
 
@@ -769,9 +787,43 @@ void MainWindow::applyLive2DSize()
 {
     if (!m_live2dMode)
         return;
-    // ZH: 基準窄高尺寸 × petScale | EN: base slim-tall size × petScale
-    const int baseW = 200, baseH = 440;
-    resize(static_cast<int>(baseW * petScale), static_cast<int>(baseH * petScale));
+    // ZH: 基準寬度(可調) × petScale；高度依固定比例 | EN: base width (adjustable) × petScale; height keeps ratio
+    const int baseH = 440;
+    resize(static_cast<int>(m_live2dBaseW * petScale), static_cast<int>(baseH * petScale));
+}
+
+void MainWindow::setMovementEnabled(bool on)
+{
+    m_movementEnabled = on;
+    if (on)
+    {
+        if (behaviorTimer) behaviorTimer->start(behaviorInterval);
+    }
+    else
+    {
+        // ZH: 關閉移動：停止決策、回到站立(仍受重力/可拖曳) | EN: off: stop decisions, return to standing (gravity/drag still work)
+        if (behaviorTimer) behaviorTimer->stop();
+        walkSteps = 0;
+        physics.targetVelocityX = 0;
+        if (currentState == Walking || currentState == Flying || currentState == Hovering)
+            setState(Standing);
+    }
+    saveSettings();
+}
+
+void MainWindow::setLive2dWidth(int w)
+{
+    m_live2dBaseW = w;
+    applyLive2DSize();
+    saveSettings();
+}
+
+void MainWindow::setLive2dModeSetting(bool on)
+{
+    // ZH: 重啟生效，僅寫入設定 (不改變目前執行期模式) | EN: restart-applied; only writes the setting
+    PetSettingsData s = PetSettings::load();
+    s.live2dMode = on;
+    PetSettings::save(s);
 }
 
 void MainWindow::setPetSkinType(int type)
