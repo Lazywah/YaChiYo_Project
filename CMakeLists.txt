@@ -128,7 +128,31 @@ if(WIN32 AND EXISTS "${CUBISM_SDK_DIR}/Core/include/Live2DCubismCore.h")
     target_include_directories(YaChiYo_Project PRIVATE src/live2d)
 
     target_link_libraries(YaChiYo_Project PRIVATE Framework Qt${QT_VERSION_MAJOR}::OpenGLWidgets)
-    target_compile_definitions(YaChiYo_Project PRIVATE YACHIYO_HAS_LIVE2D)
+    target_compile_definitions(YaChiYo_Project PRIVATE
+        YACHIYO_HAS_LIVE2D
+        # ZH: L1.4 測試用：內建 Hiyori 範例模型路徑 | EN: built-in Hiyori sample path for the L1.4 test
+        YACHIYO_LIVE2D_SAMPLE_DIR="${CUBISM_SDK_DIR}/Samples/Resources/Hiyori"
+    )
+
+    # ZH: 建置後把執行期 DLL (Core + GLEW) 複製到 exe 同層，任何建置目錄都能直接跑
+    # EN: post-build copy of runtime DLLs (Core + GLEW) next to the exe so any build dir runs
+    add_custom_command(TARGET YaChiYo_Project POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CUBISM_CORE_DLL}" "$<TARGET_FILE_DIR:YaChiYo_Project>")
+    find_file(GLEW_RUNTIME_DLL glew32.dll PATHS "${CMAKE_PREFIX_PATH}/bin" "C:/msys64/ucrt64/bin")
+    if(GLEW_RUNTIME_DLL)
+        add_custom_command(TARGET YaChiYo_Project POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${GLEW_RUNTIME_DLL}" "$<TARGET_FILE_DIR:YaChiYo_Project>")
+    endif()
+
+    # ZH: r.5 OpenGL 渲染器在執行期從檔案載入 shader，需複製到 exe 旁的 FrameworkShaders/
+    # EN: the r.5 OpenGL renderer loads shaders from files at runtime — copy them next to the exe
+    add_custom_command(TARGET YaChiYo_Project POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CUBISM_FRAMEWORK_DIR}/src/Rendering/OpenGL/Shaders/Standard"
+            "$<TARGET_FILE_DIR:YaChiYo_Project>/FrameworkShaders")
+
     message(STATUS "YaChiYo: Live2D Cubism SDK found — Live2D enabled")
 else()
     message(STATUS "YaChiYo: Live2D Cubism SDK not found — Live2D disabled")
