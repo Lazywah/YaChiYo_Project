@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
         src/modules/petautostart.cpp
         src/modules/petskin.h
         src/modules/petskin.cpp
+        src/modules/voicebridge.h
+        src/modules/voicebridge.cpp
         resources/resources.qrc
 )
 

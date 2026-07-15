@@ -27,6 +27,8 @@ PetSettingsData PetSettings::load()
     d.live2dMode       = settings.value("live2dMode",       d.live2dMode).toBool();
     d.live2dModelDir   = settings.value("live2dModelDir",   d.live2dModelDir).toString();
     d.live2dWidth      = settings.value("live2dWidth",      d.live2dWidth).toInt();
+    d.voiceEnabled     = settings.value("voiceEnabled",     d.voiceEnabled).toBool();
+    d.voicePort        = settings.value("voicePort",        d.voicePort).toInt();
 
     return d;
 }
@@ -49,4 +51,6 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("live2dMode",       d.live2dMode);
     settings.setValue("live2dModelDir",   d.live2dModelDir);
     settings.setValue("live2dWidth",      d.live2dWidth);
+    settings.setValue("voiceEnabled",     d.voiceEnabled);
+    settings.setValue("voicePort",        d.voicePort);
 }

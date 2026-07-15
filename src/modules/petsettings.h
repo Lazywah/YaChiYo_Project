@@ -30,6 +30,8 @@ struct PetSettingsData
     bool    live2dMode       = false;   // ZH: Live2D 模式 (重啟生效) | EN: Live2D mode (applied on restart)
     QString live2dModelDir   = "";      // ZH: Live2D 模型資料夾 (空=用內建範例) | EN: Live2D model dir (empty = built-in sample)
     int     live2dWidth      = 200;     // ZH: Live2D 視窗基準寬度 | EN: Live2D base window width
+    bool    voiceEnabled     = false;   // ZH: 語音助手橋接 開關 (重啟生效) | EN: voice-bridge toggle (applied on restart)
+    int     voicePort        = 39217;   // ZH: 語音事件接收埠 (localhost) | EN: voice event listen port (localhost)
 };
 
 // ZH: 設定的讀取與儲存（後端使用 QSettings，Windows 上存於登錄檔）

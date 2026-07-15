@@ -27,6 +27,7 @@ class QMenu;
 class QMovie;
 class QProgressDialog;
 class Live2DWidget;
+class VoiceBridge;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -40,6 +41,10 @@ struct PetConfig
     // ZH: Live2D 模式 (改用 Live2D 角色渲染，取代幀皮膚) | EN: Live2D mode (render a Live2D character instead of frame skins)
     bool    live2dEnabled  = false;
     QString live2dModelDir;     // ZH: 模型資料夾完整路徑 | EN: full path to the model folder
+
+    // ZH: 語音助手橋接 (被動接收語音助手的事件，做狀態同步) | EN: voice-assistant bridge (receive events, sync state)
+    bool    voiceEnabled   = false;
+    int     voicePort      = 39217;   // ZH: 事件接收埠 (localhost) | EN: event listen port (localhost)
 };
 
 class MainWindow : public QMainWindow
@@ -59,8 +64,9 @@ public:
     explicit MainWindow(const PetConfig &config = PetConfig(), QWidget *parent = nullptr);
     ~MainWindow();
 
-    // ZH: 桌寵狀態列表 | EN: Pet state list
-    enum State { Standing, Walking, Flying, Hovering, Captured, AI_Processing };
+    // ZH: 桌寵狀態列表 (語音狀態附加於末端，不擾動既有列舉值) | EN: Pet state list (voice states appended at end)
+    enum State { Standing, Walking, Flying, Hovering, Captured, AI_Processing,
+                 Listening, Thinking, Speaking };
     Q_ENUM(State)
 
     // ZH: Q_PROPERTY Getter Functions
@@ -89,6 +95,8 @@ public:
     void setLive2dWidth(int w);         // ZH: Live2D 視窗寬度 | EN: Live2D window width
     void setLive2dModeSetting(bool on); // ZH: Live2D 模式設定 (重啟生效，僅存設定) | EN: Live2D mode setting (restart-applied; saves only)
     bool isLive2dMode() const { return m_live2dMode; }   // ZH: 目前是否 Live2D 模式 | EN: currently in Live2D mode
+    void setVoiceModeSetting(bool on);  // ZH: 語音橋接開關 (重啟生效，僅存設定) | EN: voice-bridge toggle (restart-applied; saves only)
+    void setVoicePortSetting(int port); // ZH: 語音接收埠 (重啟生效，僅存設定) | EN: voice listen port (restart-applied; saves only)
 
 private:
     Ui::MainWindow *ui;
@@ -108,6 +116,13 @@ private:
     bool          m_live2dMode = false;
     int           m_live2dBaseW = 200;      // ZH: Live2D 視窗基準寬度 | EN: Live2D base window width
     void applyLive2DSize();                 // ZH: 依 petScale 設定 Live2D 視窗大小 | EN: size the Live2D window by petScale
+
+    // ZH: 語音助手橋接 | EN: voice-assistant bridge
+    VoiceBridge *m_voice        = nullptr;
+    QTimer      *m_voiceTimer   = nullptr;    // ZH: 語音狀態逾時保險 (回常態，防助手崩潰卡狀態) | EN: voice-state watchdog
+    int          m_voiceTimeoutMs = 12000;    // ZH: 未收到後續事件 N ms → 回常態 (可調) | EN: no further event → back to normal
+    bool         m_dnd          = false;      // ZH: 勿擾模式 (V1 僅記錄，視覺提示留待 V3) | EN: DND flag (recorded only in V1)
+    void enterVoiceState(State s);            // ZH: 進語音狀態 + 重啟逾時保險 | EN: enter voice state + rearm watchdog
 
     // ZH: 自動移動 / 飛行 / 懸浮 開關 | EN: auto-movement / flying / hovering toggles
     bool m_movementEnabled = true;
@@ -183,6 +198,13 @@ private slots:
     void onAIResultReady(QPixmap result);
     void onAIError(QString errorMsg);
     void onSkinReady(QList<QImage> results);
+
+    // ZH: 語音助手事件 (由 VoiceBridge 發出) | EN: voice-assistant events (from VoiceBridge)
+    void onVoiceListening();
+    void onVoiceThinking();
+    void onVoiceSpeaking(double durationSec);
+    void onVoiceIdle();
+    void onVoiceDnd(bool enabled);
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event)  override;

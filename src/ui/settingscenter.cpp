@@ -17,6 +17,7 @@
 #include <QGroupBox>            // ZH: 群組框 | EN: Group box
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
 #include <QComboBox>            // ZH: 下拉選單（皮膚選擇）| EN: Combo box (skin selection)
+#include <QSpinBox>             // ZH: 數值輸入框（語音埠號）| EN: Spin box (voice port)
 #include <QPushButton>          // ZH: 按鈕（開發者全選）| EN: Button (developer select-all)
 #include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
 
@@ -310,6 +311,32 @@ void SettingsCenter::initSettingsInterface()
     });
 
     mainLayout->addWidget(windowGroup);
+
+    // ===== ZH: 語音助手設定群組 (重啟生效) | EN: Voice assistant group (restart-applied) =====
+    QGroupBox *voiceGroup = new QGroupBox("語音助手 (Voice Assistant)", ui->tab);
+    QFormLayout *voiceLayout = new QFormLayout(voiceGroup);
+
+    // ZH: 語音連動開關 (啟用後桌寵會對語音助手事件做狀態反應) | EN: voice-bridge toggle
+    QCheckBox *voiceCheck = new QCheckBox("啟用 (重啟生效 / restart to apply)");
+    voiceCheck->setChecked(s.voiceEnabled);
+    voiceLayout->addRow("語音連動 (Voice Bridge):", voiceCheck);
+    connect(voiceCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setVoiceModeSetting(checked);
+    });
+
+    // ZH: 事件接收埠 (localhost)；語音助手需往此埠發事件 | EN: event listen port (localhost)
+    QSpinBox *portSpin = new QSpinBox;
+    portSpin->setRange(1024, 65535);
+    portSpin->setValue(s.voicePort);
+    portSpin->setToolTip("語音助手往 127.0.0.1:<埠> 發 POST /pet/event");
+    voiceLayout->addRow("接收埠 (Port, 重啟生效):", portSpin);
+    connect(portSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int val)
+    {
+        mainApp->setVoicePortSetting(val);
+    });
+
+    mainLayout->addWidget(voiceGroup);
 
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();

@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "voicebridge.h"
 
 #include <QMetaEnum>
 #include <QMenu>
@@ -105,6 +106,23 @@ void MainWindow::initAllConnect()
     // ZH: 音效模組（檔案缺失時靜默，不影響運作）| EN: Sound module (silent if files are missing)
     sound = new PetSound(this);
     sound->setEnabled(config.soundEnabled);
+
+    // ZH: 語音助手橋接（被動接收 localhost 事件，做狀態同步）| EN: voice bridge (passive localhost event receiver)
+    if (config.voiceEnabled)
+    {
+        m_voice = new VoiceBridge(this);
+        connect(m_voice, &VoiceBridge::listening,  this, &MainWindow::onVoiceListening);
+        connect(m_voice, &VoiceBridge::thinking,   this, &MainWindow::onVoiceThinking);
+        connect(m_voice, &VoiceBridge::speaking,   this, &MainWindow::onVoiceSpeaking);
+        connect(m_voice, &VoiceBridge::idle,       this, &MainWindow::onVoiceIdle);
+        connect(m_voice, &VoiceBridge::dndChanged, this, &MainWindow::onVoiceDnd);
+        m_voice->start(static_cast<quint16>(config.voicePort));
+
+        // ZH: 逾時保險 — 語音來源是外部進程，崩潰時需自動回常態 | EN: watchdog — external source may crash; auto-recover
+        m_voiceTimer = new QTimer(this);
+        m_voiceTimer->setSingleShot(true);
+        connect(m_voiceTimer, &QTimer::timeout, this, &MainWindow::onVoiceIdle);
+    }
 }
 
 //===============================================================================================
@@ -408,12 +426,21 @@ void MainWindow::updatePhysics()
 
     case Captured:
     case AI_Processing:
+    case Listening:       // ZH: 語音互動狀態原地不動 (看向由語音 slot 控制) | EN: voice states stay put (look set by voice slots)
+    case Thinking:
+    case Speaking:
     default:
         break;
     }
 
 #ifdef YACHIYO_HAS_LIVE2D
     // ZH: Live2D 模式：看向移動方向 (轉頭/眼神，靜止時回正面) | EN: Live2D: look toward movement direction (front when idle)
+    // ZH: 語音互動中不由移動速度覆蓋看向 (交給語音 slot) | EN: don't let velocity override look during voice interaction
+    if (currentState == Listening || currentState == Thinking || currentState == Speaking)
+    {
+        // ZH: 保留語音 slot 設定的看向，眨眼/呼吸/idle 動作仍在 paintGL 照常跑 | EN: keep voice look; blink/breath/idle still run
+    }
+    else
     if (m_live2dMode && m_live2d)
     {
         if (physics.currentVelocityX > 0.1)        m_live2d->setLookDirection(1.0f);
@@ -429,8 +456,9 @@ void MainWindow::updatePhysics()
 
 void MainWindow::decideNextAction()
 {
-    // ZH: AI 處理中不做任何行動決策，避免打斷生成/變身 | EN: No decisions during AI processing — don't interrupt generation/transform
-    if (currentState == AI_Processing)
+    // ZH: AI 處理 / 語音互動中不做隨機行為決策，避免打斷 | EN: No random decisions during AI processing or voice interaction
+    if (currentState == AI_Processing ||
+        currentState == Listening || currentState == Thinking || currentState == Speaking)
         return;
 
     if (currentState == Captured)
@@ -693,6 +721,83 @@ void MainWindow::onSkinReady(QList<QImage> results)
 }
 
 //===============================================================================================
+// ZH: 語音助手事件 (委派給 VoiceBridge) | EN: Voice-assistant events (delegated to VoiceBridge)
+//===============================================================================================
+
+void MainWindow::enterVoiceState(State s)
+{
+    // ZH: 被拖曳中不打斷使用者互動 | EN: don't interrupt an active drag
+    if (currentState == Captured)
+        return;
+
+    setState(s);
+
+    // ZH: 逾時保險 — N ms 內沒有後續事件就回常態 (防助手崩潰導致卡在語音狀態)
+    // EN: watchdog — return to normal if no follow-up event within N ms (guards against assistant crash)
+    if (m_voiceTimer)
+        m_voiceTimer->start(m_voiceTimeoutMs);
+}
+
+void MainWindow::onVoiceListening()
+{
+    enterVoiceState(Listening);
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: 聆聽 — 專注看向前上方 | EN: listening — attentive look up/front
+    if (m_live2dMode && m_live2d)
+        m_live2d->setLookDirection(0.0f, -0.3f);
+#endif
+}
+
+void MainWindow::onVoiceThinking()
+{
+    enterVoiceState(Thinking);
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: 思考 — 視線略往上側飄 | EN: thinking — glance up and aside
+    if (m_live2dMode && m_live2d)
+        m_live2d->setLookDirection(0.25f, -0.2f);
+#endif
+}
+
+void MainWindow::onVoiceSpeaking(double durationSec)
+{
+    enterVoiceState(Speaking);
+
+    // ZH: 用「說話時長 + 緩衝」當逾時，讓表演至少撐過整段語音 | EN: use speak duration + buffer as the watchdog window
+    if (m_voiceTimer && durationSec > 0.0)
+        m_voiceTimer->start(static_cast<int>(durationSec * 1000.0) + 1500);
+
+#ifdef YACHIYO_HAS_LIVE2D
+    // ZH: 說話 — 面向使用者，V1 先復用既有互動動作示意 (V1.5 換成嘴型開合) | EN: speaking — face user; V1 reuses a motion (V1.5 = mouth)
+    if (m_live2dMode && m_live2d)
+    {
+        m_live2d->setLookDirection(0.0f, 0.0f);
+        m_live2d->playTapBody();
+    }
+#endif
+}
+
+void MainWindow::onVoiceIdle()
+{
+    if (m_voiceTimer)
+        m_voiceTimer->stop();
+
+    // ZH: 只有還在語音狀態才回站立，避免蓋掉使用者互動 (拖曳/散步) | EN: reset only if still in a voice state
+    if (currentState == Listening || currentState == Thinking || currentState == Speaking)
+        setState(Standing);
+
+#ifdef YACHIYO_HAS_LIVE2D
+    if (m_live2dMode && m_live2d)
+        m_live2d->setLookDirection(0.0f, 0.0f);   // ZH: 回正面 | EN: back to front
+#endif
+}
+
+void MainWindow::onVoiceDnd(bool enabled)
+{
+    // ZH: 勿擾模式 — V1 僅記錄旗標，視覺提示留待 V3 | EN: DND — V1 only records the flag; visual cue deferred to V3
+    m_dnd = enabled;
+}
+
+//===============================================================================================
 // ZH: 系統托盤 | EN: System tray
 //===============================================================================================
 
@@ -910,6 +1015,22 @@ void MainWindow::setLive2dModeSetting(bool on)
     // ZH: 重啟生效，僅寫入設定 (不改變目前執行期模式) | EN: restart-applied; only writes the setting
     PetSettingsData s = PetSettings::load();
     s.live2dMode = on;
+    PetSettings::save(s);
+}
+
+void MainWindow::setVoiceModeSetting(bool on)
+{
+    // ZH: 重啟生效，僅寫入設定 (server 於下次啟動時建立) | EN: restart-applied; only writes the setting
+    PetSettingsData s = PetSettings::load();
+    s.voiceEnabled = on;
+    PetSettings::save(s);
+}
+
+void MainWindow::setVoicePortSetting(int port)
+{
+    // ZH: 重啟生效，僅寫入設定 | EN: restart-applied; only writes the setting
+    PetSettingsData s = PetSettings::load();
+    s.voicePort = port;
     PetSettings::save(s);
 }
 

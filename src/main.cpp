@@ -1,10 +1,10 @@
 #include "mainwindow.h"
+#include "petsettings.h"
 #include <QApplication>
 #include <QIcon>
 
 #ifdef YACHIYO_HAS_LIVE2D
 #include "live2dwidget.h"
-#include "petsettings.h"
 #include <QFileInfo>
 #endif
 
@@ -81,6 +81,25 @@ int main(int argc, char *argv[])
         }
     }
 #endif
+
+    // ZH: 語音助手橋接來源：設定中心存檔(重啟生效) 或命令列參數 | EN: voice bridge from saved setting (restart-applied) or CLI
+    {
+        PetSettingsData saved = PetSettings::load();
+        config.voiceEnabled = saved.voiceEnabled;
+        config.voicePort    = saved.voicePort;
+    }
+    for (const QString &arg : a.arguments())
+    {
+        if (arg == "--voice")
+        {
+            config.voiceEnabled = true;
+        }
+        else if (arg.startsWith("--voice-port="))
+        {
+            config.voiceEnabled = true;
+            config.voicePort    = arg.section('=', 1).toInt();
+        }
+    }
 
     MainWindow w(config);
     w.show();
