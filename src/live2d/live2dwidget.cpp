@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <string>
 
 #include <QDateTime>
@@ -378,6 +379,29 @@ void Live2DWidget::paintGL()
     model->AddParameterValue(ids->GetId(ParamEyeBallX),   m_faceCurrentX * 1.0f);
     model->AddParameterValue(ids->GetId(ParamEyeBallY),   m_faceCurrentY * 1.0f);
 
+    // ZH: 說話嘴型 — 到期自動閉嘴 (保險，防外部語音來源崩潰卡開嘴)
+    // EN: talking mouth — auto-close on deadline (safety against external voice source crash)
+    if (m_talking && m_talkEndMs > 0 && now >= m_talkEndMs)
+        m_talking = false;
+
+    // ZH: 多頻正弦疊加取絕對值 → 不規則的說話開合律動 (V1.5 合成，非真音訊振幅)
+    // EN: |sum of sines| → irregular talking flutter (V1.5 synthetic, not real audio amplitude)
+    float mouthTarget = 0.0f;
+    if (m_talking)
+    {
+        m_mouthPhase += dt;
+        const float o = std::sin(m_mouthPhase * 11.0f) * 0.5f
+                      + std::sin(m_mouthPhase * 19.0f) * 0.3f
+                      + std::sin(m_mouthPhase *  7.0f) * 0.2f;
+        mouthTarget = std::fabs(o);   // ZH: 0~1 | EN: 0~1
+    }
+    const float mouthEase = qMin(1.0f, dt * 15.0f);   // ZH: 嘴比看向反應更快 | EN: mouth reacts faster than gaze
+    m_mouthCurrent += (mouthTarget - m_mouthCurrent) * mouthEase;
+
+    // ZH: 說話中或仍在閉合時才覆蓋，否則交還給動作自行控制嘴部 | EN: only override while talking/closing; else leave to motions
+    if (m_talking || m_mouthCurrent > 0.01f)
+        model->SetParameterValue(ids->GetId(ParamMouthOpenY), m_mouthCurrent);
+
     model->Update();
 
     OffscreenMgr *osm = OffscreenMgr::GetInstance();
@@ -399,4 +423,20 @@ void Live2DWidget::playTapBody()
     // ZH: 優先度 2 > idle 的 1，會中斷 idle 播放點擊動作 | EN: priority 2 > idle's 1, interrupts idle
     int idx = QRandomGenerator::global()->bounded(m_tapMotions.size());
     m_motionManager->StartMotionPriority(m_tapMotions[idx], false, 2);
+}
+
+void Live2DWidget::startTalking(double durationSec)
+{
+    m_talking = true;
+    // ZH: 有時長就設自動閉嘴期限 (再加緩衝)，否則等 stopTalking | EN: set auto-close deadline if a duration is given, else wait for stopTalking
+    m_talkEndMs = (durationSec > 0.0)
+        ? QDateTime::currentMSecsSinceEpoch() + static_cast<qint64>(durationSec * 1000.0) + 300
+        : 0;
+}
+
+void Live2DWidget::stopTalking()
+{
+    // ZH: 只停振盪，m_mouthCurrent 由 paintGL 平滑歸零 (自然閉嘴) | EN: stop flutter; paintGL eases mouth to 0 (natural close)
+    m_talking = false;
+    m_talkEndMs = 0;
 }

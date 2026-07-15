@@ -744,7 +744,10 @@ void MainWindow::onVoiceListening()
 #ifdef YACHIYO_HAS_LIVE2D
     // ZH: 聆聽 — 專注看向前上方 | EN: listening — attentive look up/front
     if (m_live2dMode && m_live2d)
+    {
+        m_live2d->stopTalking();
         m_live2d->setLookDirection(0.0f, -0.3f);
+    }
 #endif
 }
 
@@ -754,7 +757,10 @@ void MainWindow::onVoiceThinking()
 #ifdef YACHIYO_HAS_LIVE2D
     // ZH: 思考 — 視線略往上側飄 | EN: thinking — glance up and aside
     if (m_live2dMode && m_live2d)
+    {
+        m_live2d->stopTalking();
         m_live2d->setLookDirection(0.25f, -0.2f);
+    }
 #endif
 }
 
@@ -767,11 +773,11 @@ void MainWindow::onVoiceSpeaking(double durationSec)
         m_voiceTimer->start(static_cast<int>(durationSec * 1000.0) + 1500);
 
 #ifdef YACHIYO_HAS_LIVE2D
-    // ZH: 說話 — 面向使用者，V1 先復用既有互動動作示意 (V1.5 換成嘴型開合) | EN: speaking — face user; V1 reuses a motion (V1.5 = mouth)
+    // ZH: 說話 — 面向使用者 + 嘴型開合 (帶時長自動閉嘴保險) | EN: speaking — face user + mouth flutter (duration auto-closes as safety)
     if (m_live2dMode && m_live2d)
     {
         m_live2d->setLookDirection(0.0f, 0.0f);
-        m_live2d->playTapBody();
+        m_live2d->startTalking(durationSec);
     }
 #endif
 }
@@ -787,7 +793,10 @@ void MainWindow::onVoiceIdle()
 
 #ifdef YACHIYO_HAS_LIVE2D
     if (m_live2dMode && m_live2d)
+    {
+        m_live2d->stopTalking();                  // ZH: 閉嘴 | EN: close mouth
         m_live2d->setLookDirection(0.0f, 0.0f);   // ZH: 回正面 | EN: back to front
+    }
 #endif
 }
 

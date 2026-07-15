@@ -39,6 +39,13 @@ public:
     // ZH: 播放 TapBody 互動動作 (點擊身體時) | EN: play a TapBody interaction motion (on body tap)
     void playTapBody();
 
+    // ZH: 開始說話嘴型 (V1.5 合成振盪，非真音訊)；durationSec>0 時到期自動閉嘴當保險
+    // EN: start talking mouth (V1.5 synthetic flutter, not real audio); durationSec>0 auto-closes as a safety net
+    void startTalking(double durationSec = 0.0);
+
+    // ZH: 停止說話嘴型 (平滑閉合) | EN: stop talking mouth (smooth close)
+    void stopTalking();
+
 protected:
     void initializeGL() override;
     void paintGL() override;
@@ -63,6 +70,10 @@ private:
     float    m_faceTargetY  = 0.0f;     // ZH: 目標看向 Y | EN: target look Y
     float    m_faceCurrentX = 0.0f;     // ZH: 平滑後看向 X | EN: smoothed look X
     float    m_faceCurrentY = 0.0f;     // ZH: 平滑後看向 Y | EN: smoothed look Y
+    bool     m_talking      = false;    // ZH: 是否正在說話 | EN: currently talking
+    qint64   m_talkEndMs    = 0;        // ZH: 說話自動閉嘴期限 (0=不自動) | EN: auto-close deadline (0=none)
+    float    m_mouthPhase   = 0.0f;     // ZH: 嘴型振盪相位 | EN: mouth oscillation phase
+    float    m_mouthCurrent = 0.0f;     // ZH: 平滑後嘴開度 0~1 | EN: smoothed mouth open 0~1
 
     QString m_modelDir;
     QString m_modelName;
