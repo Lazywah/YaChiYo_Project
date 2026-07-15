@@ -14,7 +14,9 @@
 #include <QLabel>               // ZH: 顯示數值標籤 | EN: Value display label
 #include <QFormLayout>          // ZH: 表單佈局 | EN: Form layout
 #include <QVBoxLayout>          // ZH: 垂直佈局 | EN: Vertical layout
+#include <QHBoxLayout>          // ZH: 水平佈局（重啟/退出按鈕列）| EN: Horizontal layout (restart/quit button row)
 #include <QGroupBox>            // ZH: 群組框 | EN: Group box
+#include <QCoreApplication>     // ZH: 退出程式 | EN: Quit the application
 #include <QLineEdit>            // ZH: 單行輸入框 | EN: Line edit
 #include <QComboBox>            // ZH: 下拉選單（皮膚選擇）| EN: Combo box (skin selection)
 #include <QSpinBox>             // ZH: 數值輸入框（語音埠號）| EN: Spin box (voice port)
@@ -337,6 +339,27 @@ void SettingsCenter::initSettingsInterface()
     });
 
     mainLayout->addWidget(voiceGroup);
+
+    // ===== ZH: 應用程式群組 (重啟 / 退出，免去每次找托盤) | EN: Application group (restart/quit without the tray) =====
+    QGroupBox *appGroup = new QGroupBox("應用程式 (Application)");
+    QHBoxLayout *appLayout = new QHBoxLayout(appGroup);
+
+    QPushButton *restartButton = new QPushButton("重啟桌寵 (Restart)");
+    restartButton->setToolTip("以相同參數重新啟動，套用「重啟生效」的設定（如 Live2D / 語音）");
+    connect(restartButton, &QPushButton::clicked, this, [this]()
+    {
+        mainApp->restartApp();
+    });
+
+    QPushButton *quitButton = new QPushButton("退出程式 (Quit)");
+    connect(quitButton, &QPushButton::clicked, this, []()
+    {
+        QCoreApplication::quit();
+    });
+
+    appLayout->addWidget(restartButton);
+    appLayout->addWidget(quitButton);
+    mainLayout->addWidget(appGroup);
 
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();

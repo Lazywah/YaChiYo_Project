@@ -9,7 +9,6 @@ YaChiYo 皮膚 AI 後端 (FastAPI + SD1.5 + ControlNet Canny + IP-Adapter)
   - 固定 seed         : 整套幀共用同一 seed，保持一致性
 
 端點 / Endpoints:
-  POST /transform      單張變身 (以自身為參考)        { image, prompt, negative_prompt?, seed? } -> { result, seed }
   POST /generate_skin  批次整套皮膚                    { frames[], reference?, prompt, negative_prompt?, seed?, ip_scale? } -> { results[], seed }
   GET  /health         健康檢查
 
@@ -161,16 +160,6 @@ def pick_seed(data: dict) -> int:
 # =============================================================================
 # ZH: 端點 | EN: Endpoints
 # =============================================================================
-
-@app.post("/transform")
-async def transform(data: dict = Body(...)):
-    """ZH: 單張變身，以輸入圖自身為身份參考 | EN: Single restyle, using the input as identity reference."""
-    seed = pick_seed(data)
-    img = b64_to_pil(data["image"])
-    neg = data.get("negative_prompt") or NEGATIVE_DEFAULT
-    result = restyle(img, data["prompt"], seed, reference=img, negative=neg)
-    return {"result": pil_to_b64(result), "seed": seed}
-
 
 @app.post("/generate_skin")
 async def generate_skin(data: dict = Body(...)):

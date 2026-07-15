@@ -98,6 +98,10 @@ public:
     void setVoiceModeSetting(bool on);  // ZH: 語音橋接開關 (重啟生效，僅存設定) | EN: voice-bridge toggle (restart-applied; saves only)
     void setVoicePortSetting(int port); // ZH: 語音接收埠 (重啟生效，僅存設定) | EN: voice listen port (restart-applied; saves only)
 
+    // ZH: 重啟自身 (以相同命令列參數重新啟動，套用「重啟生效」的設定)；托盤與設定中心共用
+    // EN: relaunch self with the same CLI args (applies restart-only settings); shared by tray + settings center
+    void restartApp();
+
 private:
     Ui::MainWindow *ui;
     SettingsCenter *settingsCenter;
@@ -181,7 +185,6 @@ private:
     void decideNextAction();
     void updatePetSkin();
     void turnImageSet();
-    void requestAIProcessing(const QString &prompt);
     QRect getCurrentScreenRect() const;
 
     // ZH: AI 生成皮膚 | EN: AI skin generation
@@ -195,7 +198,6 @@ private:
     void hideBusy();
 
 private slots:
-    void onAIResultReady(QPixmap result);
     void onAIError(QString errorMsg);
     void onSkinReady(QList<QImage> results);
 

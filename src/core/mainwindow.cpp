@@ -98,7 +98,6 @@ void MainWindow::initAllConnect()
     if (config.aiEnabled)
     {
         aiClient = new AIClient(this);
-        connect(aiClient, &AIClient::resultReady,    this, &MainWindow::onAIResultReady);
         connect(aiClient, &AIClient::skinReady,      this, &MainWindow::onSkinReady);
         connect(aiClient, &AIClient::errorOccurred,  this, &MainWindow::onAIError);
     }
@@ -141,20 +140,12 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
     menu.addSeparator();
 
-    QAction *aiAction = menu.addAction("AI 變身");
-    connect(aiAction, &QAction::triggered, this, [this]()
-    {
-        requestAIProcessing(aiPrompt);
-    });
-
-    // ZH: AI 生成整套皮膚 (上傳參考圖) | EN: AI generate a whole skin (upload reference)
-    QAction *aiSkinAction = menu.addAction("AI 生成皮膚 (上傳圖片)…");
-    connect(aiSkinAction, &QAction::triggered, this, [this]()
-    {
-        requestSkinGeneration();
-    });
-
-    menu.addSeparator();
+    // ZH: 「AI 生成皮膚」暫時隱藏 — 後端可跑但預設參數生成結果崩壞(很恐怖)，
+    //     待 IP_SCALE/提示詞/步數調校穩定後再開回。程式碼與端點皆保留(requestSkinGeneration)。
+    // EN: "AI generate skin" temporarily hidden — backend works but default output is broken/horrifying;
+    //     re-enable after tuning. Code path kept intact (requestSkinGeneration).
+    // QAction *aiSkinAction = menu.addAction("AI 生成皮膚 (上傳圖片)…");
+    // connect(aiSkinAction, &QAction::triggered, this, [this]() { requestSkinGeneration(); });
 
     QAction *closeAction = menu.addAction("關閉/隱藏桌寵");
     connect(closeAction, &QAction::triggered, this, &MainWindow::hide);
@@ -550,22 +541,6 @@ void MainWindow::decideNextAction()
 // ZH: AI 通訊（委派給 AIClient）| EN: AI communication (delegates to AIClient)
 //===============================================================================================
 
-void MainWindow::requestAIProcessing(const QString &prompt)
-{
-    if (currentState == AI_Processing || !aiClient || aiClient->isBusy())
-        return;
-
-    setState(AI_Processing);
-    aiClient->sendRequest(ui->label->pixmap(Qt::ReturnByValue), prompt);
-}
-
-void MainWindow::onAIResultReady(QPixmap result)
-{
-    ui->label->setPixmap(result);
-    lastAIError.clear();
-    setState(Standing);
-}
-
 void MainWindow::onAIError(QString errorMsg)
 {
     hideBusy();
@@ -810,6 +785,15 @@ void MainWindow::onVoiceDnd(bool enabled)
 // ZH: 系統托盤 | EN: System tray
 //===============================================================================================
 
+// ZH: 以相同命令列參數重新啟動自身，再退出目前實例 | EN: relaunch self with same args, then quit current instance
+void MainWindow::restartApp()
+{
+    QStringList args = QCoreApplication::arguments();
+    if (!args.isEmpty()) args.removeFirst();   // ZH: 去掉程式路徑 | EN: drop argv[0]
+    QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
+    QCoreApplication::quit();
+}
+
 void MainWindow::initTrayIcon()
 {
     trayIcon = new QSystemTrayIcon(this);
@@ -829,13 +813,7 @@ void MainWindow::initTrayIcon()
 
     // ZH: 重啟桌寵 (套用「重啟生效」的設定，如 Live2D 模式) | EN: restart pet (apply restart-only settings like Live2D mode)
     QAction *restartAction = trayMenu->addAction("重啟桌寵 (Restart)");
-    connect(restartAction, &QAction::triggered, this, []()
-    {
-        QStringList args = QCoreApplication::arguments();
-        if (!args.isEmpty()) args.removeFirst();   // ZH: 去掉程式路徑 | EN: drop argv[0]
-        QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
-        QCoreApplication::quit();
-    });
+    connect(restartAction, &QAction::triggered, this, &MainWindow::restartApp);
 
     trayMenu->addSeparator();
 

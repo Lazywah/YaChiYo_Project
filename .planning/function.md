@@ -106,12 +106,14 @@ ai_server/
 
 ## 7. AI 模組（AIClient + 皮膚 AI）
 
+> 註：「單張變身（AI 變身）」及後端 `/transform` 端點已於 2026-07 移除（QLabel 時代產物，Live2D 主線下失效）。
+> 「AI 生成皮膚」右鍵選單項**暫時隱藏**（實際跑過可行，但預設參數生成結果崩壞，待調校後再開回）；程式碼與 `/generate_skin` 端點保留。
+
 | 功能 | 說明 | 相關檔案 |
 |------|------|----------|
-| 單張變身（AI 變身） | 右鍵觸發，當前畫面 POST `/transform`，以自身為身份參考 | `src/modules/aiclient.cpp` `sendRequest()` |
-| 生成整套皮膚 | 右鍵「AI 生成皮膚 (上傳圖片)」→ 上傳參考圖 + 當前皮膚姿勢幀 → POST `/generate_skin` | `src/modules/aiclient.cpp` `generateSkin()`、`mainwindow.cpp` `requestSkinGeneration()` |
+| 生成整套皮膚（選單暫隱） | `requestSkinGeneration()`：上傳參考圖 + 當前皮膚姿勢幀 → POST `/generate_skin` | `src/modules/aiclient.cpp` `generateSkin()`、`mainwindow.cpp` `requestSkinGeneration()` |
 | 寫入新皮膚 | 回傳整套寫成 `<執行檔>/skins/ai_<時間戳>/` + 複製改名的 `skin.json`，並 `setSkin()` 立即套用 | `src/core/mainwindow.cpp` `onSkinReady()` |
-| 訊號回傳 | `resultReady(QPixmap)` / `skinReady(QList<QImage>)` / `errorOccurred(QString)`；`pendingKind` 區分端點 | `src/modules/aiclient.h` |
+| 訊號回傳 | `skinReady(QList<QImage>)` / `errorOccurred(QString)`；`pendingKind` 區分端點 | `src/modules/aiclient.h` |
 | 提示與通知 | 生成中 `QProgressDialog` 忙碌視窗，完成/失敗 `QSystemTrayIcon` 通知 + `QToolTip` | `src/core/mainwindow.cpp` `showBusy()`/`onSkinReady()`/`onAIError()` |
 | 防重複請求 | `isBusy()` + `AI_Processing` 狀態 + `decideNextAction` 守衛 | `src/modules/aiclient.cpp`、`src/core/mainwindow.cpp` |
 | Python 後端 | FastAPI + SD1.5 + **ControlNet Canny（姿勢）+ IP-Adapter（身份）+ 負面提示詞**，Docker 化執行 | `ai_server/inference.py`、`ai_server/docker-compose.yml` |

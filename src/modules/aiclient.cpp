@@ -18,26 +18,6 @@ bool AIClient::isBusy() const
     return busy;
 }
 
-void AIClient::sendRequest(const QPixmap &pixmap, const QString &prompt)
-{
-    if (busy) return;
-    busy = true;
-    pendingKind = Kind::Transform;
-
-    // ZH: 將圖片轉為 Base64 | EN: Encode pixmap to Base64
-    QByteArray ba;
-    QBuffer buffer(&ba);
-    pixmap.save(&buffer, "PNG");
-
-    QJsonObject json;
-    json["image"]  = QString::fromLatin1(ba.toBase64());
-    json["prompt"] = prompt;
-
-    QNetworkRequest request(QUrl("http://127.0.0.1:8000/transform"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    networkManager->post(request, QJsonDocument(json).toJson());
-}
-
 void AIClient::generateSkin(const QImage &reference, const QList<QImage> &frames, const QString &prompt)
 {
     if (busy) return;
@@ -70,7 +50,6 @@ void AIClient::generateSkin(const QImage &reference, const QList<QImage> &frames
 void AIClient::onReplyFinished(QNetworkReply *reply)
 {
     busy = false;
-    const Kind kind = pendingKind;
     pendingKind = Kind::None;
 
     if (reply->error() != QNetworkReply::NoError)
@@ -82,32 +61,21 @@ void AIClient::onReplyFinished(QNetworkReply *reply)
 
     QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
 
-    if (kind == Kind::Skin)
+    // ZH: 目前僅剩 /generate_skin 一種回應 | EN: only /generate_skin remains
+    const QJsonArray results = res["results"].toArray();
+    QList<QImage> imgs;
+    for (const QJsonValue &v : results)
     {
-        const QJsonArray results = res["results"].toArray();
-        QList<QImage> imgs;
-        for (const QJsonValue &v : results)
-        {
-            QByteArray ba = QByteArray::fromBase64(v.toString().toUtf8());
-            QImage img;
-            if (img.loadFromData(ba))
-                imgs.append(img);
-        }
+        QByteArray ba = QByteArray::fromBase64(v.toString().toUtf8());
+        QImage img;
+        if (img.loadFromData(ba))
+            imgs.append(img);
+    }
 
-        if (!imgs.isEmpty() && imgs.size() == results.size())
-            emit skinReady(imgs);
-        else
-            emit errorOccurred("AI Error: Failed to decode skin frames");
-    }
+    if (!imgs.isEmpty() && imgs.size() == results.size())
+        emit skinReady(imgs);
     else
-    {
-        QByteArray resBa = QByteArray::fromBase64(res["result"].toString().toUtf8());
-        QPixmap result;
-        if (result.loadFromData(resBa))
-            emit resultReady(result);
-        else
-            emit errorOccurred("AI Error: Failed to decode response image");
-    }
+        emit errorOccurred("AI Error: Failed to decode skin frames");
 
     reply->deleteLater();
 }
