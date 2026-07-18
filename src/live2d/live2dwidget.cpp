@@ -384,16 +384,25 @@ void Live2DWidget::paintGL()
     if (m_talking && m_talkEndMs > 0 && now >= m_talkEndMs)
         m_talking = false;
 
-    // ZH: 多頻正弦疊加取絕對值 → 不規則的說話開合律動 (V1.5 合成，非真音訊振幅)
-    // EN: |sum of sines| → irregular talking flutter (V1.5 synthetic, not real audio amplitude)
+    // ZH: 嘴型開合目標 — V2 優先用外部真振幅，斷流時退回 V1.5 合成律動 (優雅降級)
+    // EN: mouth-open target — V2 prefers the real external amplitude, falling back to the V1.5 synthetic flutter on stream drop
     float mouthTarget = 0.0f;
     if (m_talking)
     {
-        m_mouthPhase += dt;
-        const float o = std::sin(m_mouthPhase * 11.0f) * 0.5f
-                      + std::sin(m_mouthPhase * 19.0f) * 0.3f
-                      + std::sin(m_mouthPhase *  7.0f) * 0.2f;
-        mouthTarget = std::fabs(o);   // ZH: 0~1 | EN: 0~1
+        // ZH: 200ms 內有收到外部振幅 → 用「真嘴型」；否則退回多頻正弦合成，串流斷了嘴也不會凍住
+        // EN: real amplitude within 200ms → real mouth; otherwise fall back to the |sum of sines| flutter so a stalled stream never freezes the mouth
+        if (m_realMouthLastMs > 0 && (now - m_realMouthLastMs) < 200)
+        {
+            mouthTarget = m_realMouthTarget;   // ZH: 真音量包絡 0~1 | EN: real volume envelope 0~1
+        }
+        else
+        {
+            m_mouthPhase += dt;
+            const float o = std::sin(m_mouthPhase * 11.0f) * 0.5f
+                          + std::sin(m_mouthPhase * 19.0f) * 0.3f
+                          + std::sin(m_mouthPhase *  7.0f) * 0.2f;
+            mouthTarget = std::fabs(o);   // ZH: 0~1 | EN: 0~1
+        }
     }
     const float mouthEase = qMin(1.0f, dt * 15.0f);   // ZH: 嘴比看向反應更快 | EN: mouth reacts faster than gaze
     m_mouthCurrent += (mouthTarget - m_mouthCurrent) * mouthEase;
@@ -439,4 +448,12 @@ void Live2DWidget::stopTalking()
     // ZH: 只停振盪，m_mouthCurrent 由 paintGL 平滑歸零 (自然閉嘴) | EN: stop flutter; paintGL eases mouth to 0 (natural close)
     m_talking = false;
     m_talkEndMs = 0;
+}
+
+void Live2DWidget::setMouthLevel(float level)
+{
+    // ZH: 夾在 0~1，並記錄時間戳；paintGL 靠時間戳判斷是否夠新鮮而採用真嘴型 (見 paintGL 嘴型段)
+    // EN: clamp 0~1 and stamp the time; paintGL uses the stamp to decide whether this value is fresh enough for the real mouth
+    m_realMouthTarget = qBound(0.0f, level, 1.0f);
+    m_realMouthLastMs = QDateTime::currentMSecsSinceEpoch();
 }

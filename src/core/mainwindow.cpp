@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "voicebridge.h"
+#include "mouthstream.h"
 
 #include <QMetaEnum>
 #include <QMenu>
@@ -121,6 +122,21 @@ void MainWindow::initAllConnect()
         m_voiceTimer = new QTimer(this);
         m_voiceTimer->setSingleShot(true);
         connect(m_voiceTimer, &QTimer::timeout, this, &MainWindow::onVoiceIdle);
+
+#ifdef YACHIYO_HAS_LIVE2D
+        // ZH: V2 真嘴型 — UDP 收音量包絡餵給 Live2D 嘴部 (只在 Live2D 模式有意義)。埠 = 事件埠+1。
+        //     嘴的開合閘門仍由 speaking 事件的 startTalking 控制；此串流只是把嘴填成真音量。
+        // EN: V2 real mouth — receive the volume envelope over UDP and feed the Live2D mouth (Live2D mode only). Port = event port + 1.
+        //     The mouth gate is still driven by startTalking from the speaking event; this stream only fills the mouth with the real level.
+        if (m_live2dMode && m_live2d)
+        {
+            m_mouth = new MouthStream(this);
+            connect(m_mouth, &MouthStream::mouthLevel, this, [this](float level) {
+                if (m_live2d) m_live2d->setMouthLevel(level);
+            });
+            m_mouth->start(static_cast<quint16>(config.voicePort + 1));
+        }
+#endif
     }
 }
 

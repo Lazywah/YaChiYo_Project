@@ -46,6 +46,12 @@ public:
     // ZH: 停止說話嘴型 (平滑閉合) | EN: stop talking mouth (smooth close)
     void stopTalking();
 
+    // ZH: V2 真嘴型 — 餵入外部音量包絡 (0~1)。paintGL 在說話中且此值夠新鮮 (<200ms) 時，
+    //     用它取代 V1.5 合成律動；串流一斷即自動退回合成，嘴不會凍住。
+    // EN: V2 real mouth — feed an external volume envelope (0~1). While talking and this value is fresh
+    //     (<200ms), paintGL uses it instead of the V1.5 synthetic flutter; on stream drop it falls back automatically.
+    void setMouthLevel(float level);
+
 protected:
     void initializeGL() override;
     void paintGL() override;
@@ -74,6 +80,8 @@ private:
     qint64   m_talkEndMs    = 0;        // ZH: 說話自動閉嘴期限 (0=不自動) | EN: auto-close deadline (0=none)
     float    m_mouthPhase   = 0.0f;     // ZH: 嘴型振盪相位 | EN: mouth oscillation phase
     float    m_mouthCurrent = 0.0f;     // ZH: 平滑後嘴開度 0~1 | EN: smoothed mouth open 0~1
+    float    m_realMouthTarget = 0.0f;  // ZH: V2 外部餵入的振幅 0~1 | EN: V2 externally-fed amplitude 0~1
+    qint64   m_realMouthLastMs = 0;     // ZH: V2 上次收到振幅的時間戳 (新鮮度判斷) | EN: V2 last amplitude timestamp (freshness)
 
     QString m_modelDir;
     QString m_modelName;

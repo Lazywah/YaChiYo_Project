@@ -28,6 +28,7 @@ class QMovie;
 class QProgressDialog;
 class Live2DWidget;
 class VoiceBridge;
+class MouthStream;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -123,6 +124,7 @@ private:
 
     // ZH: 語音助手橋接 | EN: voice-assistant bridge
     VoiceBridge *m_voice        = nullptr;
+    MouthStream *m_mouth        = nullptr;    // ZH: V2 嘴型振幅串流接收 (UDP，僅 Live2D 模式) | EN: V2 mouth-amplitude stream (UDP, Live2D mode only)
     QTimer      *m_voiceTimer   = nullptr;    // ZH: 語音狀態逾時保險 (回常態，防助手崩潰卡狀態) | EN: voice-state watchdog
     int          m_voiceTimeoutMs = 12000;    // ZH: 未收到後續事件 N ms → 回常態 (可調) | EN: no further event → back to normal
     bool         m_dnd          = false;      // ZH: 勿擾模式 (V1 僅記錄，視覺提示留待 V3) | EN: DND flag (recorded only in V1)

@@ -40,6 +40,8 @@ set(PROJECT_SOURCES
         src/modules/petskin.cpp
         src/modules/voicebridge.h
         src/modules/voicebridge.cpp
+        src/modules/mouthstream.h
+        src/modules/mouthstream.cpp
         resources/resources.qrc
 )
 
