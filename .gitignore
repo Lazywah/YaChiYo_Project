@@ -107,6 +107,7 @@ CMakeLists.txt.user*
 /logs/
 /checkpoints/
 /ai_server/models/
+/tools/models/
 /resources/images/record/
 
 # Python 相關 (如果你用 Python 訓練 AI)
