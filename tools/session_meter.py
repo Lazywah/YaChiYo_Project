@@ -136,8 +136,12 @@ def process_tree(root: int, kids: dict, max_depth: int = 5) -> set:
 # ── SessionMeter：盯住符合條件的 session,回傳最大峰值 ──────────────────────────────────────────
 class SessionMeter:
     """
-    match 規則: 指定 pid → 比對 {pid} ∪ 子孫; 否則 → 比對 session 行程名是否含 name_substr。
-    match_all=True 用於 --list (全收)。
+    match 規則 (都以「行程樹」為單位,故能涵蓋短命的子行程如 Hermes 每句 spawn 的 ffplay.exe):
+      - 指定 pid       → 比對 {pid} ∪ 子孫
+      - 否則用 name_substr → 錨定「名稱含 name_substr 的行程」,比對其整棵子樹
+        (例:name_substr='hermes' 會把 hermes.exe→python.exe→ffplay.exe 全收進來)
+      - match_all=True → 全收 (供 --list)
+    每次 rescan 重算目標樹,故 Hermes/ffplay 換 PID、Hermes 重啟都自動跟上。
     """
 
     def __init__(self, name_substr: str = None, pid: int = None, match_all: bool = False):
@@ -170,11 +174,19 @@ class SessionMeter:
         self._mgr = mgr
 
     def _match(self, spid: int, names: dict) -> bool:
-        if self.match_all:
-            return True
+        return True if self.match_all else spid in self._target_pids
+
+    def _compute_targets(self, names: dict, kids: dict):
+        """算出目標 PID 集合 (行程樹)。錨點行程換 PID / 重啟都會在此重新解析。"""
         if self.pid is not None:
-            return spid in self._target_pids
-        return bool(self.name_substr) and self.name_substr in names.get(spid, "").lower()
+            return process_tree(self.pid, kids)
+        if not self.name_substr:
+            return set()
+        anchors = [p for p, n in names.items() if self.name_substr in n.lower()]
+        tgt = set()
+        for a in anchors:
+            tgt |= process_tree(a, kids)
+        return tgt
 
     def rescan(self):
         """重建符合條件的 meter 清單 (session 會來來去去,故定期重掃)。回傳 [(pid,name,meter)]。"""
@@ -182,8 +194,8 @@ class SessionMeter:
             _release(m)
         self._meters = []
         names, kids = snapshot()
-        if self.pid is not None:
-            self._target_pids = process_tree(self.pid, kids)
+        if not self.match_all:
+            self._target_pids = self._compute_targets(names, kids)
 
         senum = c_void_p()       # IAudioSessionManager2::GetSessionEnumerator(&e) vtable#5
         if _vcall(self._mgr, 5, c_long, [POINTER(c_void_p)], byref(senum)) != 0 or not senum.value:
@@ -305,7 +317,7 @@ def _run_target(name_substr, pid, rescan_sec):
 def main():
     ap = argparse.ArgumentParser(description="WASAPI per-process 音量峰值表 (獨立測試)")
     ap.add_argument("--list", action="store_true", help="列出所有發聲行程的即時峰值")
-    ap.add_argument("--process", default=None, help="盯住行程名含此字串者 (如 hermes)")
+    ap.add_argument("--process", default=None, help="錨定名稱含此字串的行程,盯其整棵子樹 (如 hermes → 含其 spawn 的 ffplay)")
     ap.add_argument("--pid", type=int, default=None, help="盯住指定 PID (含子孫行程)")
     ap.add_argument("--rescan-sec", type=float, default=1.0, help="重掃 session 間隔秒 (預設 %(default)s)")
     args = ap.parse_args()

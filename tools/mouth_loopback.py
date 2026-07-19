@@ -5,8 +5,10 @@ Path B 擷取端 — 讀 Hermes 的音量,驅動桌寵 V2 真嘴型 (不改 Herm
 Path B capture — reads Hermes's output volume and drives the pet's V2 real mouth (no Hermes changes).
 
 兩種擷取模式 / Two capture backends:
-  ● per-process (預設,建議) — 只讀「Hermes 這個行程」的 WASAPI audio session 峰值 (見 session_meter.py)。
+  ● per-process (預設,建議) — 只讀「Hermes 行程樹」的 WASAPI audio session 峰值 (見 session_meter.py)。
     別的 App 放音樂/通知音都不會動到嘴巴。純同步 COM,無額外套件。
+    ⚠ Hermes 的 TTS 是 spawn 一個短命的 `ffplay.exe`(每句一個,播完就死)在播,不是 Hermes 本體發聲;
+      故盯的是「hermes 整棵子樹」而非單一 PID(--pid 釘死短命行程沒用)。
   ● --whole-system (退路) — 舊行為:WASAPI loopback 錄整台喇叭輸出 (需 `pip install soundcard numpy`)。
     任何系統聲音都會驅動嘴型;僅在 per-process 抓不到目標時當備援。
 
@@ -186,8 +188,8 @@ def run_whole_system(args):
 
 def main():
     ap = argparse.ArgumentParser(description="Path B 擷取端 → 桌寵 V2 真嘴型")
-    ap.add_argument("--process", default="hermes", help="per-process:盯住行程名含此字串者 (預設 %(default)s)")
-    ap.add_argument("--pid", type=int, default=None, help="per-process:改用指定 PID (含子孫行程)")
+    ap.add_argument("--process", default="hermes", help="per-process:錨定名稱含此字串的行程,盯其整棵子樹 (預設 %(default)s,含其 ffplay)")
+    ap.add_argument("--pid", type=int, default=None, help="per-process:改用指定 PID 當錨點 (含子孫行程)")
     ap.add_argument("--whole-system", action="store_true", help="改用舊的整機 loopback (需 soundcard/numpy)")
     ap.add_argument("--gain", type=float, default=None, help="0~1 增益 (預設:per-process 2.5 / whole-system 8.0)")
     ap.add_argument("--rescan-sec", type=float, default=1.0, help="per-process 重掃 session 間隔 (預設 %(default)s)")
