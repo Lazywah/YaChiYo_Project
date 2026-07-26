@@ -154,6 +154,14 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
         settingsCenter->showWindow();
     });
 
+    // ZH: V3 反向收音 — 語音啟用時提供「跟八千代說話」直接觸發 Hermes 錄音
+    // EN: V3 click-to-record — when voice is on, offer a menu entry to trigger Hermes recording
+    if (m_voice)
+    {
+        QAction *talkAction = menu.addAction("跟八千代說話");
+        connect(talkAction, &QAction::triggered, this, [this]() { triggerVoiceRecord(); });
+    }
+
     menu.addSeparator();
 
     // ZH: 「AI 生成皮膚」暫時隱藏 — 後端可跑但預設參數生成結果崩壞(很恐怖)，
@@ -227,7 +235,22 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             if (isTap) m_live2d->playTapBody();        // ZH: 點擊身體互動動作 | EN: body-tap interaction motion
         }
 #endif
+
+        // ZH: V3 雙擊觸發收音 — 延到放開後才做，讓「樂觀 Listening」不被上面的 setState 蓋掉
+        // EN: V3 double-click record — deferred to release so optimistic Listening isn't clobbered by the setState above
+        if (m_pendingVoiceTrigger)
+        {
+            m_pendingVoiceTrigger = false;
+            triggerVoiceRecord();
+        }
     }
+}
+
+void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    // ZH: 語音啟用時，雙擊桌寵 = 開始跟八千代說話 (實際觸發延到隨後的 release) | EN: dbl-click = start talking (fires on release)
+    if (event->button() == Qt::LeftButton && m_voice)
+        m_pendingVoiceTrigger = true;
 }
 
 //===============================================================================================
@@ -727,6 +750,45 @@ void MainWindow::enterVoiceState(State s)
     // EN: watchdog — return to normal if no follow-up event within N ms (guards against assistant crash)
     if (m_voiceTimer)
         m_voiceTimer->start(m_voiceTimeoutMs);
+}
+
+// ZH: V3 反向收音 — 從執行檔目錄往上層找 tools/hermes_inject.py (開發時 exe 在 build/，tools 在專案根)
+// EN: V3 — locate tools/hermes_inject.py by walking up from the exe dir (exe lives in build/, tools at project root)
+QString MainWindow::hermesToolPath() const
+{
+    QDir dir(QCoreApplication::applicationDirPath());
+    for (int i = 0; i < 6; ++i)
+    {
+        const QString cand = dir.filePath("tools/hermes_inject.py");
+        if (QFileInfo::exists(cand))
+            return cand;
+        if (!dir.cdUp())
+            break;
+    }
+    return QString();
+}
+
+// ZH: V3 反向收音 — spawn hermes_inject.py 送 Ctrl+B 給 Hermes conhost 開錄音，並樂觀進 Listening 給即時回饋
+// EN: V3 — spawn the injector to send Ctrl+B to Hermes' conhost (start recording), then optimistically enter Listening
+void MainWindow::triggerVoiceRecord()
+{
+    if (!m_voice)   // ZH: 語音未啟用不觸發 | EN: no-op when voice is off
+        return;
+
+    const QString script = hermesToolPath();
+    if (script.isEmpty())
+    {
+        qWarning("[voice] 找不到 tools/hermes_inject.py，無法觸發錄音");
+        return;
+    }
+
+    // ZH: 目標鎖 conhost 類別 (Windows Terminal 對合成輸入免疫，須用傳統主控台) | EN: target classic console
+    const QStringList args = { script, "ctrl-b", "--window-class", "ConsoleWindowClass" };
+    // ZH: pythonw 免閃黑框；找不到再退 python | EN: pythonw avoids a console flash; fall back to python
+    if (!QProcess::startDetached("pythonw", args))
+        QProcess::startDetached("python", args);
+
+    onVoiceListening();   // ZH: 樂觀回饋：立刻進聆聽態 (真正 speaking 仍由 mouth_loopback POST) | EN: optimistic Listening
 }
 
 void MainWindow::onVoiceListening()

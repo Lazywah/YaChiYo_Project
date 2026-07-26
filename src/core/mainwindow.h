@@ -130,6 +130,11 @@ private:
     bool         m_dnd          = false;      // ZH: 勿擾模式 (V1 僅記錄，視覺提示留待 V3) | EN: DND flag (recorded only in V1)
     void enterVoiceState(State s);            // ZH: 進語音狀態 + 重啟逾時保險 | EN: enter voice state + rearm watchdog
 
+    // ZH: V3 反向收音 — 雙擊/右鍵 → 觸發 Hermes 錄音 | EN: V3 click-to-record — double-click / right-click triggers Hermes recording
+    bool    m_pendingVoiceTrigger = false;    // ZH: 雙擊已標記、待放開時觸發 (避免被 release 的 setState 蓋掉) | EN: set on dbl-click, fired on release
+    void    triggerVoiceRecord();             // ZH: spawn hermes_inject.py ctrl-b + 樂觀進 Listening | EN: spawn injector + optimistic Listening
+    QString hermesToolPath() const;           // ZH: 從執行檔目錄往上找 tools/hermes_inject.py | EN: locate the injector script
+
     // ZH: 自動移動 / 飛行 / 懸浮 開關 | EN: auto-movement / flying / hovering toggles
     bool m_movementEnabled = true;
     bool m_flyingEnabled   = true;
@@ -215,6 +220,7 @@ protected:
     void mousePressEvent(QMouseEvent *event)         override;
     void mouseMoveEvent(QMouseEvent *event)          override;
     void mouseReleaseEvent(QMouseEvent *event)       override;
+    void mouseDoubleClickEvent(QMouseEvent *event)   override;   // ZH: V3 雙擊 → 收音 | EN: V3 double-click → record
 };
 
 #endif // MAINWINDOW_H
