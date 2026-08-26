@@ -29,6 +29,8 @@ class QProgressDialog;
 class Live2DWidget;
 class VoiceBridge;
 class MouthStream;
+class ChatStore;
+class ChatWindow;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -134,6 +136,14 @@ private:
     bool    m_pendingVoiceTrigger = false;    // ZH: 雙擊已標記、待放開時觸發 (避免被 release 的 setState 蓋掉) | EN: set on dbl-click, fired on release
     void    triggerVoiceRecord();             // ZH: spawn hermes_inject.py ctrl-b + 樂觀進 Listening | EN: spawn injector + optimistic Listening
     QString hermesToolPath() const;           // ZH: 從執行檔目錄往上找 tools/hermes_inject.py | EN: locate the injector script
+    bool    runHermesInject(const QStringList &extraArgs);   // ZH: pythonw→python spawn hermes_inject.py | EN: spawn the injector
+
+    // ZH: V3 聊天室 — 唯讀讀 Hermes state.db 顯示往來 + 打字注入 (共享同一 Hermes 記憶)
+    // EN: V3 chat room — read Hermes' state.db (display) + inject typed text (shared memory)
+    ChatStore  *m_chat    = nullptr;
+    ChatWindow *m_chatWin = nullptr;
+    void openChatWindow();                    // ZH: 建立/顯示聊天室 (右鍵) | EN: create/show the chat window
+    void sendChatText(const QString &text);   // ZH: 打字送出 → 注入 conhost | EN: typed send → inject into conhost
 
     // ZH: 自動移動 / 飛行 / 懸浮 開關 | EN: auto-movement / flying / hovering toggles
     bool m_movementEnabled = true;

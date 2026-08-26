@@ -2,6 +2,8 @@
 #include "./ui_mainwindow.h"
 #include "voicebridge.h"
 #include "mouthstream.h"
+#include "chatstore.h"
+#include "chatwindow.h"
 
 #include <QMetaEnum>
 #include <QMenu>
@@ -24,6 +26,8 @@
 #include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMessageBox>
+#include <limits>
 
 #ifdef YACHIYO_HAS_LIVE2D
 #include "live2dwidget.h"
@@ -123,6 +127,11 @@ void MainWindow::initAllConnect()
         m_voiceTimer->setSingleShot(true);
         connect(m_voiceTimer, &QTimer::timeout, this, &MainWindow::onVoiceIdle);
 
+        // ZH: V3 聊天室資料源 — 唯讀 Hermes state.db (開啟失敗不致命，右鍵開聊天室時再提示)
+        // EN: V3 chat store — read-only Hermes state.db (non-fatal if it fails; surfaced when the chat is opened)
+        m_chat = new ChatStore(this);
+        m_chat->open();
+
 #ifdef YACHIYO_HAS_LIVE2D
         // ZH: V2 真嘴型 — UDP 收音量包絡餵給 Live2D 嘴部 (只在 Live2D 模式有意義)。埠 = 事件埠+1。
         //     嘴的開合閘門仍由 speaking 事件的 startTalking 控制；此串流只是把嘴填成真音量。
@@ -160,6 +169,9 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
     {
         QAction *talkAction = menu.addAction("跟八千代說話");
         connect(talkAction, &QAction::triggered, this, [this]() { triggerVoiceRecord(); });
+
+        QAction *chatAction = menu.addAction("聊天室");
+        connect(chatAction, &QAction::triggered, this, [this]() { openChatWindow(); });
     }
 
     menu.addSeparator();
@@ -768,27 +780,81 @@ QString MainWindow::hermesToolPath() const
     return QString();
 }
 
-// ZH: V3 反向收音 — spawn hermes_inject.py 送 Ctrl+B 給 Hermes conhost 開錄音，並樂觀進 Listening 給即時回饋
-// EN: V3 — spawn the injector to send Ctrl+B to Hermes' conhost (start recording), then optimistically enter Listening
+// ZH: 共用 — spawn hermes_inject.py <extraArgs> (pythonw 免閃黑框，退 python)。成功回 true。
+// EN: shared — spawn hermes_inject.py with extra args (pythonw to avoid a console flash, fall back to python).
+bool MainWindow::runHermesInject(const QStringList &extraArgs)
+{
+    const QString script = hermesToolPath();
+    if (script.isEmpty())
+    {
+        qWarning("[voice] 找不到 tools/hermes_inject.py");
+        return false;
+    }
+    QStringList args;
+    args << script << extraArgs;
+    if (QProcess::startDetached("pythonw", args))
+        return true;
+    return QProcess::startDetached("python", args);
+}
+
+// ZH: V3 反向收音 — 送 Ctrl+B 給 Hermes conhost 開錄音，並樂觀進 Listening 給即時回饋
+// EN: V3 — send Ctrl+B to Hermes' conhost (start recording), then optimistically enter Listening
 void MainWindow::triggerVoiceRecord()
 {
     if (!m_voice)   // ZH: 語音未啟用不觸發 | EN: no-op when voice is off
         return;
+    // ZH: 目標鎖 conhost 類別 (Windows Terminal 對合成輸入免疫，須用傳統主控台) | EN: target classic console
+    runHermesInject({ "ctrl-b", "--window-class", "ConsoleWindowClass" });
+    onVoiceListening();   // ZH: 樂觀回饋：立刻進聆聽態 (真正 speaking 仍由 mouth_loopback POST) | EN: optimistic Listening
+}
 
-    const QString script = hermesToolPath();
-    if (script.isEmpty())
+// ZH: V3 聊天室 — 打字送出 → 注入整句+Enter 到語音那個 Hermes conhost (同 session=記憶共享)
+// EN: V3 chat — typed send → inject the whole line + Enter into the same Hermes conhost (same session = shared memory)
+void MainWindow::sendChatText(const QString &text)
+{
+    if (text.trimmed().isEmpty())
+        return;
+    runHermesInject({ "type-text", text, "--window-class", "ConsoleWindowClass" });
+    // ZH: 不自行塞畫面——ChatStore 會從 DB 讀回 (單一真相來源) | EN: no local echo; ChatStore reads it back from the DB
+}
+
+// ZH: V3 聊天室 — 建立/顯示。首次載入當前 session 最後一批，之後輪詢新訊息、捲頂載入更舊。
+// EN: V3 chat — create/show. Initial load of the latest batch of the current session; then poll new / load older on scroll-top.
+void MainWindow::openChatWindow()
+{
+    if (!m_chat || !m_chat->isOpen())
     {
-        qWarning("[voice] 找不到 tools/hermes_inject.py，無法觸發錄音");
+        QMessageBox::warning(this, QStringLiteral("聊天室"),
+            QStringLiteral("找不到 / 無法開啟 Hermes 對話資料庫。\n請先執行過 Hermes。\n\n%1")
+                .arg(m_chat ? m_chat->error() : QStringLiteral("語音未啟用")));
         return;
     }
 
-    // ZH: 目標鎖 conhost 類別 (Windows Terminal 對合成輸入免疫，須用傳統主控台) | EN: target classic console
-    const QStringList args = { script, "ctrl-b", "--window-class", "ConsoleWindowClass" };
-    // ZH: pythonw 免閃黑框；找不到再退 python | EN: pythonw avoids a console flash; fall back to python
-    if (!QProcess::startDetached("pythonw", args))
-        QProcess::startDetached("python", args);
+    if (!m_chatWin)
+    {
+        m_chatWin = new ChatWindow(this);
 
-    onVoiceListening();   // ZH: 樂觀回饋：立刻進聆聽態 (真正 speaking 仍由 mouth_loopback POST) | EN: optimistic Listening
+        // ZH: 打字送出 → 注入 conhost | EN: typed send → inject into conhost
+        connect(m_chatWin, &ChatWindow::sendRequested, this, &MainWindow::sendChatText);
+
+        // ZH: 捲頂要更舊 → 查當前 session 中 id < beforeId 的一批，前插 | EN: scroll-top → load older of current session, prepend
+        connect(m_chatWin, &ChatWindow::loadOlderRequested, this, [this](qint64 beforeId) {
+            const QString sid = m_chat->currentSessionId();
+            m_chatWin->prependMessages(m_chat->loadSession(sid, beforeId, 50));
+        });
+
+        // ZH: 輪詢到的新訊息 → 追加 (語音/打字皆同表，自動含入) | EN: polled new msgs → append (voice & typed alike)
+        connect(m_chat, &ChatStore::newMessages, m_chatWin, &ChatWindow::appendMessages);
+
+        // ZH: 首次載入當前 session 最後一批 (beforeId 給大值) | EN: initial load: latest batch of current session
+        const QString sid = m_chat->currentSessionId();
+        m_chatWin->setMessages(m_chat->loadSession(sid, std::numeric_limits<qint64>::max(), 50));
+        m_chat->startPolling();
+    }
+
+    m_chatWin->show();
+    m_chatWin->raise();
+    m_chatWin->activateWindow();
 }
 
 void MainWindow::onVoiceListening()

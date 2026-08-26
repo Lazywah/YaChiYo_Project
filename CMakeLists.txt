@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Sql)
 
 # ZH: Multimedia 為可選元件，未安裝時音效模組自動降級為無聲 (見 petsound.cpp)
 # EN: Multimedia is optional; PetSound degrades to silent when it is absent (see petsound.cpp)
@@ -24,6 +24,8 @@ set(PROJECT_SOURCES
         src/ui/settingscenter.h
         src/ui/settingscenter.cpp
         src/ui/settingscenter.ui
+        src/ui/chatwindow.h
+        src/ui/chatwindow.cpp
         src/modules/petphysics.h
         src/modules/petphysics.cpp
         src/modules/petbehavior.h
@@ -42,6 +44,8 @@ set(PROJECT_SOURCES
         src/modules/voicebridge.cpp
         src/modules/mouthstream.h
         src/modules/mouthstream.cpp
+        src/modules/chatstore.h
+        src/modules/chatstore.cpp
         resources/resources.qrc
 )
 
@@ -84,6 +88,7 @@ target_include_directories(YaChiYo_Project PRIVATE
 target_link_libraries(YaChiYo_Project PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Sql
 )
 
 # ZH: 找得到 Multimedia 才連結並定義巨集，啟用實際音效 | EN: Link Multimedia and enable real audio only if found
