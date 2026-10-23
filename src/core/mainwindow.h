@@ -87,6 +87,7 @@ public:
     // ZH: 設定中心可調整的 Setter | EN: Setters adjustable from Settings Center
     void setWalkSpeed(double speed);
     void setGravity(double g);
+    void setHoverAmplitude(double a);   // ZH: 懸浮 sin wave 振幅 | EN: hover sine-wave amplitude
     void setBehaviorInterval(int ms);
     void setPetScale(double scale);
     void setAlwaysOnTop(bool onTop);

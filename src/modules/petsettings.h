@@ -21,6 +21,7 @@ struct PetSettingsData
     int     behaviorInterval = 5000;    // ZH: 決策間隔 ms | EN: Decision interval (ms)
     double  petScale         = 1.0;     // ZH: 桌寵縮放 | EN: Pet scale
     double  gravity          = 0.8;     // ZH: 重力強度 | EN: Gravity
+    double  hoverAmplitude   = 5.6;     // ZH: 懸浮 sin wave 振幅 px | EN: hover sine-wave amplitude (px)
     bool    gifSkin          = true;    // ZH: GIF 皮膚模式 (對應 petSkinType 1/0) | EN: GIF skin mode
     bool    alwaysOnTop      = true;    // ZH: 視窗置頂 | EN: Always on top
     QStringList yieldApps;              // ZH: 讓位清單 — 這些程式在前景時桌寵退到後面 (exe 檔名) | EN: yield list — pet steps behind these apps (exe names)

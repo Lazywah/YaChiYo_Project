@@ -26,7 +26,7 @@ public:
     // ZH: 浮空 (Hovering) 狀態 | EN: Hovering state
     double hoverPhase = 0.0;
     int    hoverBaseY = 0;
-    const double hoverAmplitude = 5.6;   // ZH: 浮動振幅 (原 8.0 調低 30%) | EN: hover amplitude (8.0 reduced by 30%)
+    double       hoverAmplitude = 5.6;   // ZH: 浮動振幅 px (設定中心可調) | EN: hover amplitude in px (adjustable in Settings Center)
     const double hoverSpeed     = 0.08;
 
     // ZH: 飛行 (Flying) 狀態 | EN: Flying state

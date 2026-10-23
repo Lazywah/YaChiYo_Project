@@ -293,6 +293,23 @@ void SettingsCenter::initSettingsInterface()
         mainApp->setGravity(g);
     });
 
+    // ZH: 懸浮浮動幅度 (0 ~ 20 px，0 = 不上下浮動) | EN: hover sine-wave amplitude (0 ~ 20 px, 0 = no bobbing)
+    QSlider *hoverAmpSlider = new QSlider(Qt::Horizontal);
+    hoverAmpSlider->setRange(0, 200);       // ZH: 實際值 = slider / 10.0 | EN: Actual value = slider / 10.0
+    hoverAmpSlider->setValue(static_cast<int>(s.hoverAmplitude * 10));
+    QLabel *hoverAmpLabel = new QLabel(QString::number(s.hoverAmplitude, 'f', 1) + "px");
+    QHBoxLayout *hoverAmpRow = new QHBoxLayout;
+    hoverAmpRow->addWidget(hoverAmpSlider);
+    hoverAmpRow->addWidget(hoverAmpLabel);
+    physicsLayout->addRow("懸浮幅度 (Hover Amplitude):", hoverAmpRow);
+
+    connect(hoverAmpSlider, &QSlider::valueChanged, this, [this, hoverAmpLabel](int val)
+    {
+        double a = val / 10.0;
+        hoverAmpLabel->setText(QString::number(a, 'f', 1) + "px");
+        mainApp->setHoverAmplitude(a);
+    });
+
     mainLayout->addWidget(physicsGroup);
 
     // ===== ZH: 視窗設定群組 | EN: Window settings group =====

@@ -17,6 +17,7 @@ PetSettingsData PetSettings::load()
     d.behaviorInterval = settings.value("behaviorInterval", d.behaviorInterval).toInt();
     d.petScale         = settings.value("petScale",         d.petScale).toDouble();
     d.gravity          = settings.value("gravity",          d.gravity).toDouble();
+    d.hoverAmplitude   = settings.value("hoverAmplitude",   d.hoverAmplitude).toDouble();
     d.gifSkin          = settings.value("gifSkin",          d.gifSkin).toBool();
     d.alwaysOnTop      = settings.value("alwaysOnTop",      d.alwaysOnTop).toBool();
     d.yieldApps        = settings.value("yieldApps",        d.yieldApps).toStringList();
@@ -43,6 +44,7 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("behaviorInterval", d.behaviorInterval);
     settings.setValue("petScale",         d.petScale);
     settings.setValue("gravity",          d.gravity);
+    settings.setValue("hoverAmplitude",   d.hoverAmplitude);
     settings.setValue("gifSkin",          d.gifSkin);
     settings.setValue("alwaysOnTop",      d.alwaysOnTop);
     settings.setValue("yieldApps",        d.yieldApps);

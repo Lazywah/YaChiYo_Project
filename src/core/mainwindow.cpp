@@ -1025,6 +1025,7 @@ void MainWindow::applySettings(const PetSettingsData &s)
     behaviorInterval   = s.behaviorInterval;
     petScale           = s.petScale;
     physics.gravity    = s.gravity;
+    physics.hoverAmplitude = s.hoverAmplitude;
     petSkinType        = s.gifSkin ? 1 : 0;
     aiPrompt           = s.aiPrompt;
     m_movementEnabled  = s.movementEnabled;
@@ -1043,6 +1044,7 @@ void MainWindow::saveSettings() const
     s.behaviorInterval = behaviorInterval;
     s.petScale         = petScale;
     s.gravity          = physics.gravity;
+    s.hoverAmplitude   = physics.hoverAmplitude;
     s.gifSkin          = (petSkinType == 1);
     s.alwaysOnTop      = windowFlags().testFlag(Qt::WindowStaysOnTopHint);
     s.aiPrompt         = aiPrompt;
@@ -1060,6 +1062,7 @@ void MainWindow::saveSettings() const
 
 void MainWindow::setWalkSpeed(double speed)   { behavior.walkSpeed = speed; saveSettings(); }
 void MainWindow::setGravity(double g)         { physics.gravity = g;        saveSettings(); }
+void MainWindow::setHoverAmplitude(double a)  { physics.hoverAmplitude = a; saveSettings(); }
 void MainWindow::setAiPrompt(const QString &prompt) { aiPrompt = prompt;    saveSettings(); }
 
 void MainWindow::setBehaviorInterval(int ms)
