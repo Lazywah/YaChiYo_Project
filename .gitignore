@@ -122,3 +122,6 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 install_manifest.txt
+# ZH: 本機啟動/關閉捷徑 (指向 tools/*_yachiyo.ps1) | EN: local start/stop shortcuts
+/YaChiYo Start.lnk
+/YaChiYo Stop.lnk
