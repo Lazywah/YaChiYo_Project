@@ -24,6 +24,8 @@
 #include <QPushButton>          // ZH: 按鈕（開發者全選）| EN: Button (developer select-all)
 #include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
 #include <QScrollArea>          // ZH: 設定分頁捲動區 | EN: Settings tab scroll area
+#include <QScrollBar>           // ZH: 索引籤跳轉/同步用 | EN: index jump / sync
+#include <QPropertyAnimation>   // ZH: 索引籤平滑捲動 | EN: smooth scroll for the index
 
 #include "mainwindow.h"
 #include "petsettings.h"
@@ -37,7 +39,7 @@ SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     , mainApp(mainPtr)
 {
     ui->setupUi(this);
-    setFixedSize(520, 560);     // ZH: 固定大小，設定變多時改由捲動區承載 | EN: fixed size; extra settings scroll instead of growing the window
+    setFixedSize(580, 560);     // ZH: 固定大小，設定變多時改由捲動區承載 | EN: fixed size; extra settings scroll instead of growing the window
 
     initSettingsInterface();
     initDeveloperInterface();
@@ -130,7 +132,16 @@ void SettingsCenter::initSettingsInterface()
     QWidget *scrollContent = new QWidget;
     scrollArea->setWidget(scrollContent);
 
-    tabLayout->addWidget(scrollArea);
+    // ZH: 左側索引籤 (點擊跳到對應群組，捲動時自動標示所在群組) | EN: left index tabs (click to jump; follows scrolling)
+    QListWidget *indexList = new QListWidget(ui->tab);
+    indexList->setFixedWidth(72);
+    indexList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    indexList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    QHBoxLayout *bodyLayout = new QHBoxLayout;
+    bodyLayout->addWidget(indexList);
+    bodyLayout->addWidget(scrollArea);
+    tabLayout->addLayout(bodyLayout);
     QVBoxLayout *mainLayout = new QVBoxLayout(scrollContent);
 
     // ZH: 載入已儲存的設定，作為各控制項的初始值 | EN: Load persisted settings to initialise controls
@@ -475,6 +486,47 @@ void SettingsCenter::initSettingsInterface()
 
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();
+
+    // ZH: 索引籤 — 新增群組時在此加一行即可 | EN: index tabs — add one line here per new group
+    const QList<QPair<QString, QGroupBox *>> sections = {
+        { "行為", behaviorGroup },
+        { "外觀", appearanceGroup },
+        { "物理", physicsGroup },
+        { "視窗", windowGroup },
+        { "語音", voiceGroup },
+    };
+    for (const auto &sec : sections)
+        indexList->addItem(sec.first);
+    indexList->setCurrentRow(0);
+
+    QScrollBar *vbar = scrollArea->verticalScrollBar();
+    QPropertyAnimation *scrollAnim = new QPropertyAnimation(vbar, "value", this);
+    scrollAnim->setDuration(220);
+    scrollAnim->setEasingCurve(QEasingCurve::OutCubic);
+
+    // ZH: 點擊索引 → 平滑捲到該群組頂端 | EN: click an index → smooth-scroll to that group's top
+    connect(indexList, &QListWidget::itemClicked, this, [=](QListWidgetItem *item)
+    {
+        const QGroupBox *group = sections.at(indexList->row(item)).second;
+        scrollAnim->stop();
+        scrollAnim->setStartValue(vbar->value());
+        scrollAnim->setEndValue(qMin(group->y() - mainLayout->contentsMargins().top(), vbar->maximum()));
+        scrollAnim->start();
+    });
+
+    // ZH: 捲動時標示目前所在群組 (捲到底時標最後一個) | EN: highlight the group in view (last one when scrolled to the bottom)
+    connect(vbar, &QScrollBar::valueChanged, this, [=](int value)
+    {
+        int row = 0;
+        if (value >= vbar->maximum() && vbar->maximum() > 0)
+            row = sections.size() - 1;
+        else
+            for (int i = 0; i < sections.size(); ++i)
+                if (sections.at(i).second->y() <= value + mainLayout->contentsMargins().top() + 10)
+                    row = i;
+        QSignalBlocker blocker(indexList);
+        indexList->setCurrentRow(row);
+    });
 
     // ZH: 重啟/退出固定在捲動區下方，不必捲到底才找得到 | EN: restart/quit pinned below the scroll area, always reachable
     tabLayout->addWidget(appGroup);
