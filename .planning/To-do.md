@@ -1,25 +1,39 @@
 # YaChiYo 桌寵專案 — 待實作功能清單
 
-> 最後更新：2026-06-11
+> 最後更新：2026-10-24
+> 標記：`[x]` 完成　`[~]` 部分完成　`[ ]` 未開始
 
 ---
 
 ## 1. 圖生圖自開發 [ ]
+- 目前皮膚 AI 用現成 SD1.5 + ControlNet + IP-Adapter（見 Item 15），尚非自開發
 
 ## 2. 遊戲助手 AI 整合 [ ]
 
-## 3. 語言模型整合 [ ]
+## 3. 語言模型整合 [x]
+- 改走「雙進程」：桌寵是身體/臉，語音 AI 助手 **Hermes**（`NousResearch/hermes-agent`）是大腦，兩者靠 localhost 溝通
+- 主模型 Claude Haiku 5.5，Gemini 退為備援
+- 桌寵端：`VoiceBridge`（事件 `127.0.0.1:39217`）、`MouthStream`（嘴型振幅 UDP 39218）、Listening/Thinking/Speaking 狀態
+- V2 真嘴型（`tools/mouth_loopback.py` + `session_meter.py`，只讀 Hermes 行程樹的音量）、喚醒詞（`tools/wakeword.py`）、中文語音
+- V3：雙擊/右鍵開錄音（`tools/hermes_inject.py`）、聊天室（`ChatStore` 讀 Hermes `state.db` + `ChatWindow` 打字注入）
+- 一鍵啟動/關閉：`tools/start_yachiyo.ps1` / `stop_yachiyo.ps1`
+- 設計藍圖：`.planning/v3_voice_interaction_design.md`
 
 ## 4. 語言模型自開發 [ ]
 
-## 5. AI 上網功能 [ ]
+## 5. AI 上網功能 [~]
+- [x] Hermes `browser` 工具（`agent-browser`）已實測可自行開網頁查資料（需 `PYTHONUTF8=1`）
+- [ ] `web_search` / `web_extract` 仍缺搜尋後端金鑰（Tavily 需綁卡已排除；Exa/Firecrawl 待確認）
 
-## 6. AI 管家化 [ ]
+## 6. AI 管家化 [~]
+- [x] 指令層：Hermes `terminal` + `file` 工具可用
+- [ ] GUI 層：`computer_use`（cua-driver 0.22.2）已安裝、健檢全綠，toolset 尚未啟用（`hermes tools enable computer_use`）
 
-## 7. 音效系統 [ ]
-- 整合 `QSoundEffect` 或 Qt Multimedia 模組
-- 為落地、碰牆、拖曳、走路等互動加入音效
-- 需準備對應的音效檔案
+## 7. 音效系統 [~]
+- [x] `PetSound` 框架（`QSoundEffect`，Qt Multimedia 可選）：落地 / 碰牆 / 抓取 / 釋放，檔案缺失時靜默
+- [ ] 準備音效檔（執行檔旁 `sounds/`：`land.wav` / `wall.wav` / `grab.wav` / `release.wav`）
+- [ ] 走路音效
+- [ ] 建置環境安裝 `qt6-multimedia`（目前 CMake 偵測不到 → 音效實際停用）
 
 ## 8. 完整國際化支援 (i18n) [ ]
 - 導入 Qt Linguist 工具鏈
@@ -32,11 +46,12 @@
 - 設定中心「視窗設定」：全螢幕時讓開 + 不覆蓋的程式清單（可挑執行中程式或手動輸入 exe）；僅在視窗置頂時有效
 
 ## 10. Hovering 狀態應加上 Sin wave [x]
-- 已於 `updatePhysics()` Hovering case 實作（`PetPhysics::calcHoverY()`，振幅 8px）
+- 已於 `updatePhysics()` Hovering case 實作（`PetPhysics::calcHoverY()`）；飛行改直線，sin wave 僅留懸浮原地
 
-## 11. 所有圖示應經由圖生圖 AI 重新生成 [ ]
+## 11. 所有圖示應經由圖生圖 AI 重新生成 → 併入 Item 15b
 
-## 12. 桌寵顯示方式應當用 (multi-Agent 並結合多個 AI 模組進行) 或 (anime-engine 方式進行) [ ]
+## 12. 桌寵顯示方式應當用 (multi-Agent 並結合多個 AI 模組進行) 或 (anime-engine 方式進行) [x]
+- 已定案走 **Live2D**（見 Item 15c）；3D 路線評估見 `.planning/skin_animation_design.md` §8
 
 ## 13. 資訊安全管理 (建立一個 AI 程式碼審核員，使用 LLM 進行 code review，以及安全性的風險評估，輸出一個報告讓我知道風險等級、以及如何修補) [ ]
 
@@ -67,13 +82,17 @@
   透明懸浮窗、自動眨眼/呼吸、Pose 圖層、shader 從檔案載入(POST_BUILD 複製 DLL+shader)
 - [x] **L2 接進桌寵**：`--live2d` 模式、PetPhysics 驅動移動/拖曳、idle 動作播放、
   走路看向方向(轉頭/眼神)、貼合高度投影、桌寵大小滑桿縮放
-- [ ] L2.4（中期）：拖曳看向滑鼠、TapBody 點擊動作、狀態→表情、Live2D 設定 UI
+- [~] **L2.4**：
+  - [x] 拖曳看向滑鼠（2D 轉頭+眼神）、點擊身體 TapBody 動作（Batch B）
+  - [x] Live2D 設定 UI：Live2D 模式開關（重啟生效）、視窗寬度（Batch A）
+  - [x] 物理手感：落地弧形緩速、取消彈跳、飛行改直線（Batch C）
+  - [x] 語音嘴型：說話時嘴巴跟 Hermes TTS 音量開合（見 Item 3）
+  - [ ] 狀態 → 表情（Expression）
 - [ ] L3：換上使用者自己的角色模型（需在 Cubism Editor 綁骨 / 現成分層素材）
 - [ ] L4（遠期）：AI 輔助平面圖自動拆層綁骨
 
 ## 15b. 所有內建圖示經由皮膚 AI 重新生成 [ ]（原 Item 11，待皮膚 AI 品質穩定後執行）
 
 ## 16. 工具 AI 群架構 (Tool AIs) [ ]
-- 每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關
-- 右鍵選單擴充「AI 工具」子選單
-- 涵蓋：遊戲助手、語言模型、AI 上網、AI 管家、程式碼審核員（Item 2~6、13 的架構基礎）
+- 原構想：每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關；右鍵選單擴充「AI 工具」子選單
+- **待重新評估**：上網 / 管家等工具能力目前改由 Hermes 的 toolset 提供（Item 5、6），桌寵端未必需要另寫 `*client`
