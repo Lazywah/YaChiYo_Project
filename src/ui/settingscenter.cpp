@@ -23,6 +23,7 @@
 #include <QSpinBox>             // ZH: 數值輸入框（語音埠號）| EN: Spin box (voice port)
 #include <QPushButton>          // ZH: 按鈕（開發者全選）| EN: Button (developer select-all)
 #include <QSignalBlocker>       // ZH: 暫時阻擋訊號（還原勾選狀態用）| EN: Temporarily block signals
+#include <QScrollArea>          // ZH: 設定分頁捲動區 | EN: Settings tab scroll area
 
 #include "mainwindow.h"
 #include "petsettings.h"
@@ -36,6 +37,7 @@ SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     , mainApp(mainPtr)
 {
     ui->setupUi(this);
+    setFixedSize(520, 560);     // ZH: 固定大小，設定變多時改由捲動區承載 | EN: fixed size; extra settings scroll instead of growing the window
 
     initSettingsInterface();
     initDeveloperInterface();
@@ -113,14 +115,23 @@ void SettingsCenter::initSettingsInterface()
 {
     // ZH: 取得設定分頁的佈局 | EN: Get the layout of the settings tab
     QLayout *existingLayout = ui->tab->layout();
-    QVBoxLayout *mainLayout;
-
     if (existingLayout)
     {
         // ZH: 移除現有空佈局並替換 | EN: Remove existing empty layout and replace
         delete existingLayout;
     }
-    mainLayout = new QVBoxLayout(ui->tab);
+    QVBoxLayout *tabLayout = new QVBoxLayout(ui->tab);
+    tabLayout->setContentsMargins(0, 0, 0, 0);
+
+    // ZH: 設定群組放進捲動區 (視窗固定大小，新增設定只會變長、可捲動) | EN: setting groups live in a scroll area (fixed window; new settings just scroll)
+    QScrollArea *scrollArea = new QScrollArea(ui->tab);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    QWidget *scrollContent = new QWidget;
+    scrollArea->setWidget(scrollContent);
+
+    tabLayout->addWidget(scrollArea);
+    QVBoxLayout *mainLayout = new QVBoxLayout(scrollContent);
 
     // ZH: 載入已儲存的設定，作為各控制項的初始值 | EN: Load persisted settings to initialise controls
     PetSettingsData s = PetSettings::load();
@@ -461,10 +472,12 @@ void SettingsCenter::initSettingsInterface()
 
     appLayout->addWidget(restartButton);
     appLayout->addWidget(quitButton);
-    mainLayout->addWidget(appGroup);
 
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();
+
+    // ZH: 重啟/退出固定在捲動區下方，不必捲到底才找得到 | EN: restart/quit pinned below the scroll area, always reachable
+    tabLayout->addWidget(appGroup);
 }
 
 void SettingsCenter::initDeveloperInterface()
