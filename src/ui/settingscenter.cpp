@@ -6,6 +6,7 @@
 #include <QMetaProperty>        // ZH: 用於操作屬性的元資訊(如獲取屬性名稱) | EN: Meta-information used to manipulate properties(such as retrieving property names)
 #include <QMetaObject>          // ZH: 用於遍歷屬性清單 | EN: Used for iterating over the attribute list
 #include <QVariant>             // ZH: property() 回傳的是 QVariant，必須包含此檔才能轉換數據 | EN: The property() function returns a QVariant; this file must be included to convert the data
+#include <QListWidget>
 #include <QListWidgetItem>
 #include <QPlainTextEdit>
 #include <QTimer>
@@ -27,6 +28,7 @@
 #include "petsettings.h"
 #include "petautostart.h"
 #include "petskin.h"
+#include "petzguard.h"
 
 SettingsCenter::SettingsCenter(MainWindow *mainPtr, QWidget *parent)
     : QDialog(parent)
@@ -70,10 +72,21 @@ void SettingsCenter::populateSkinList()
     }
 }
 
+void SettingsCenter::populateRunningApps()
+{
+    if (!yieldAppCombo) return;
+
+    const QString typed = yieldAppCombo->currentText();
+    yieldAppCombo->clear();
+    yieldAppCombo->addItems(PetZGuard::runningWindowApps());
+    yieldAppCombo->setEditText(typed);      // ZH: 保留使用者已輸入的文字 | EN: keep what the user typed
+}
+
 void SettingsCenter::showWindow()
 {
     // ZH: 每次開啟重新掃描皮膚 (含剛生成的 AI 皮膚) | EN: rescan skins on open (incl. freshly generated AI skins)
     populateSkinList();
+    populateRunningApps();
 
     // ZH: 將視窗移至當前螢幕中央 | EN: Move window to center of current screen
     QScreen *screen = QGuiApplication::screenAt(mainApp->geometry().center());
@@ -291,9 +304,81 @@ void SettingsCenter::initSettingsInterface()
     alwaysOnTopCheck->setChecked(s.alwaysOnTop);    // ZH: 載入存檔值 | EN: From saved value
     windowLayout->addRow("視窗置頂 (Always on Top):", alwaysOnTopCheck);
 
-    connect(alwaysOnTopCheck, &QCheckBox::toggled, this, [this](bool checked)
+    // ZH: 全螢幕讓位 — 前景為全螢幕程式 (遊戲/影片) 時退到後面 | EN: yield to fullscreen apps (games/video)
+    QCheckBox *yieldFullscreenCheck = new QCheckBox("啟用 (Enabled)");
+    yieldFullscreenCheck->setChecked(s.yieldFullscreen);
+    yieldFullscreenCheck->setToolTip("前景是全螢幕程式時，桌寵暫時退到它後面");
+    windowLayout->addRow("全螢幕時讓開 (Yield to Fullscreen):", yieldFullscreenCheck);
+    connect(yieldFullscreenCheck, &QCheckBox::toggled, this, [this](bool checked)
+    {
+        mainApp->setYieldFullscreen(checked);
+    });
+
+    // ZH: 讓位清單 (To-do 9) — 這些程式在前景時桌寵不覆蓋它 | EN: yield list (To-do 9) — pet won't cover these apps
+    QListWidget *yieldList = new QListWidget;
+    yieldList->addItems(s.yieldApps);
+    yieldList->setMaximumHeight(90);
+    yieldList->setToolTip("這些程式在前景時，桌寵暫時退到它後面");
+
+    yieldAppCombo = new QComboBox;
+    yieldAppCombo->setEditable(true);       // ZH: 下拉挑執行中程式，或手動輸入 exe 名 | EN: pick a running app or type an exe name
+    yieldAppCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    QPushButton *yieldAddBtn    = new QPushButton("加入 (Add)");
+    QPushButton *yieldRemoveBtn = new QPushButton("移除 (Remove)");
+    QHBoxLayout *yieldEditRow = new QHBoxLayout;
+    yieldEditRow->addWidget(yieldAppCombo);
+    yieldEditRow->addWidget(yieldAddBtn);
+    yieldEditRow->addWidget(yieldRemoveBtn);
+
+    QVBoxLayout *yieldBox = new QVBoxLayout;
+    yieldBox->addWidget(yieldList);
+    yieldBox->addLayout(yieldEditRow);
+    windowLayout->addRow("不覆蓋的程式 (Yield List):", yieldBox);
+
+    // ZH: 清單有變動 → 整份寫回 | EN: list changed → write the whole list back
+    auto commitYieldList = [this, yieldList]()
+    {
+        QStringList apps;
+        for (int i = 0; i < yieldList->count(); ++i)
+            apps << yieldList->item(i)->text();
+        mainApp->setYieldApps(apps);
+    };
+
+    connect(yieldAddBtn, &QPushButton::clicked, this, [this, yieldList, commitYieldList]()
+    {
+        QString exe = yieldAppCombo->currentText().trimmed().toLower();
+        if (exe.isEmpty())
+            return;
+        if (!exe.endsWith(".exe"))
+            exe += ".exe";
+        if (!yieldList->findItems(exe, Qt::MatchFixedString).isEmpty())
+            return;             // ZH: 已在清單中 | EN: already listed
+        yieldList->addItem(exe);
+        yieldAppCombo->setEditText(QString());
+        commitYieldList();
+    });
+
+    connect(yieldRemoveBtn, &QPushButton::clicked, this, [yieldList, commitYieldList]()
+    {
+        delete yieldList->currentItem();
+        commitYieldList();
+    });
+
+    // ZH: 讓位只在置頂時有意義，未置頂時停用相關控制項 | EN: yielding only matters while on top; disable otherwise
+    auto setYieldEnabled = [=](bool on)
+    {
+        yieldFullscreenCheck->setEnabled(on);
+        yieldList->setEnabled(on);
+        yieldAppCombo->setEnabled(on);
+        yieldAddBtn->setEnabled(on);
+        yieldRemoveBtn->setEnabled(on);
+    };
+    setYieldEnabled(s.alwaysOnTop);
+
+    connect(alwaysOnTopCheck, &QCheckBox::toggled, this, [this, setYieldEnabled](bool checked)
     {
         mainApp->setAlwaysOnTop(checked);
+        setYieldEnabled(checked);
     });
 
     // ZH: 開機自啟動（以登錄檔為真實來源，故直接讀寫 PetAutostart）

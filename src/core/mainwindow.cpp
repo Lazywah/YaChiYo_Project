@@ -4,6 +4,7 @@
 #include "mouthstream.h"
 #include "chatstore.h"
 #include "chatwindow.h"
+#include "petzguard.h"
 
 #include <QMetaEnum>
 #include <QMenu>
@@ -75,6 +76,12 @@ MainWindow::MainWindow(const PetConfig &config, QWidget *parent)
         flags |= Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     setAttribute(Qt::WA_TranslucentBackground);
+
+    // ZH: 疊層讓位 — 只在置頂時運作 | EN: z-order yield — only active while always-on-top
+    m_zguard = new PetZGuard(this, this);
+    m_zguard->setApps(saved.yieldApps);
+    m_zguard->setYieldFullscreen(saved.yieldFullscreen);
+    m_zguard->setActive(saved.alwaysOnTop);
 
     initAllConnect();
     initTrayIcon();
@@ -1207,7 +1214,24 @@ void MainWindow::setAlwaysOnTop(bool onTop)
         flags &= ~Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     show();
+    m_zguard->setActive(onTop);     // ZH: 視窗已重建，讓位狀態重新判斷 | EN: window was rebuilt → re-evaluate yield state
     saveSettings();
+}
+
+void MainWindow::setYieldApps(const QStringList &apps)
+{
+    m_zguard->setApps(apps);
+    PetSettingsData s = PetSettings::load();
+    s.yieldApps = apps;
+    PetSettings::save(s);
+}
+
+void MainWindow::setYieldFullscreen(bool on)
+{
+    m_zguard->setYieldFullscreen(on);
+    PetSettingsData s = PetSettings::load();
+    s.yieldFullscreen = on;
+    PetSettings::save(s);
 }
 
 MainWindow::~MainWindow()

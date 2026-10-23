@@ -19,6 +19,8 @@ PetSettingsData PetSettings::load()
     d.gravity          = settings.value("gravity",          d.gravity).toDouble();
     d.gifSkin          = settings.value("gifSkin",          d.gifSkin).toBool();
     d.alwaysOnTop      = settings.value("alwaysOnTop",      d.alwaysOnTop).toBool();
+    d.yieldApps        = settings.value("yieldApps",        d.yieldApps).toStringList();
+    d.yieldFullscreen  = settings.value("yieldFullscreen",  d.yieldFullscreen).toBool();
     d.aiPrompt         = settings.value("aiPrompt",         d.aiPrompt).toString();
     d.currentSkin      = settings.value("currentSkin",      d.currentSkin).toString();
     d.movementEnabled  = settings.value("movementEnabled",  d.movementEnabled).toBool();
@@ -43,6 +45,8 @@ void PetSettings::save(const PetSettingsData &d)
     settings.setValue("gravity",          d.gravity);
     settings.setValue("gifSkin",          d.gifSkin);
     settings.setValue("alwaysOnTop",      d.alwaysOnTop);
+    settings.setValue("yieldApps",        d.yieldApps);
+    settings.setValue("yieldFullscreen",  d.yieldFullscreen);
     settings.setValue("aiPrompt",         d.aiPrompt);
     settings.setValue("currentSkin",      d.currentSkin);
     settings.setValue("movementEnabled",  d.movementEnabled);

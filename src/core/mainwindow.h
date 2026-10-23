@@ -31,6 +31,7 @@ class VoiceBridge;
 class MouthStream;
 class ChatStore;
 class ChatWindow;
+class PetZGuard;
 
 // ZH: 程式啟動時的功能開關，由 main.cpp 傳入
 // EN: Feature flags passed from main.cpp at startup
@@ -89,6 +90,8 @@ public:
     void setBehaviorInterval(int ms);
     void setPetScale(double scale);
     void setAlwaysOnTop(bool onTop);
+    void setYieldApps(const QStringList &apps);   // ZH: 讓位清單 (To-do 9) | EN: yield list (To-do 9)
+    void setYieldFullscreen(bool on);             // ZH: 全螢幕程式自動讓位 | EN: auto-yield to fullscreen apps
     void setAiPrompt(const QString &prompt);
     void setPetSkinType(int type);
     void setSkin(const QString &id);    // ZH: 切換皮膚 (依 id) | EN: Switch skin by id
@@ -115,6 +118,7 @@ private:
     PetBehavior behavior;
     AIClient   *aiClient = nullptr;
     PetSound   *sound    = nullptr;
+    PetZGuard  *m_zguard = nullptr;         // ZH: 疊層讓位 (前景為清單程式/全螢幕時退到後面) | EN: z-order yield to listed / fullscreen apps
     PetSkin     skin;                       // ZH: 當前皮膚 (資料驅動) | EN: Current skin (data-driven)
     QString     currentSkinId = "default";  // ZH: 當前皮膚 id | EN: Current skin id
 

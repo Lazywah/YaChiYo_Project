@@ -2,6 +2,7 @@
 #define PETSETTINGS_H
 
 #include <QString>
+#include <QStringList>
 
 // ZH: 所有需要持久化的使用者偏好集中在此結構，欄位自帶預設值
 // EN: All persisted user preferences live in this struct, each with its default
@@ -22,6 +23,8 @@ struct PetSettingsData
     double  gravity          = 0.8;     // ZH: 重力強度 | EN: Gravity
     bool    gifSkin          = true;    // ZH: GIF 皮膚模式 (對應 petSkinType 1/0) | EN: GIF skin mode
     bool    alwaysOnTop      = true;    // ZH: 視窗置頂 | EN: Always on top
+    QStringList yieldApps;              // ZH: 讓位清單 — 這些程式在前景時桌寵退到後面 (exe 檔名) | EN: yield list — pet steps behind these apps (exe names)
+    bool    yieldFullscreen  = true;    // ZH: 全螢幕程式自動讓位 | EN: auto-yield to fullscreen apps
     QString aiPrompt         = "transform this character into a new style"; // ZH: AI 提示詞 | EN: AI prompt
     QString currentSkin      = "default";   // ZH: 當前皮膚 id (skins/ 下的資料夾名) | EN: current skin id (folder name under skins/)
     bool    movementEnabled  = true;    // ZH: 自動移動(散步) 開關 | EN: auto-movement (wander) toggle

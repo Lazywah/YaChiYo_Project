@@ -27,7 +27,9 @@
 - 將所有 `tr()` 字串翻譯為英文 / 其他語言
 - 目前已完成：程式碼中的雙語註解 (ZH: | EN:)
 
-## 9. 疊層列表 (用於標示那些視窗不被桌寵覆蓋) [ ]
+## 9. 疊層列表 (用於標示那些視窗不被桌寵覆蓋) [x]
+- `PetZGuard`（`src/modules/petzguard.*`）：前景為讓位清單程式或全螢幕程式時，桌寵以 `SetWindowPos` 退到其正後方，切走後恢復置頂
+- 設定中心「視窗設定」：全螢幕時讓開 + 不覆蓋的程式清單（可挑執行中程式或手動輸入 exe）；僅在視窗置頂時有效
 
 ## 10. Hovering 狀態應加上 Sin wave [x]
 - 已於 `updatePhysics()` Hovering case 實作（`PetPhysics::calcHoverY()`，振幅 8px）
