@@ -129,6 +129,7 @@ void SettingsCenter::initSettingsInterface()
     QScrollArea *scrollArea = new QScrollArea(ui->tab);
     scrollArea->setWidgetResizable(true);
     scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // ZH: 只直向捲動，內容須自行縮進寬度 | EN: vertical scrolling only; content must fit the width
     QWidget *scrollContent = new QWidget;
     scrollArea->setWidget(scrollContent);
 
@@ -362,6 +363,9 @@ void SettingsCenter::initSettingsInterface()
     yieldAppCombo = new QComboBox;
     yieldAppCombo->setEditable(true);       // ZH: 下拉挑執行中程式，或手動輸入 exe 名 | EN: pick a running app or type an exe name
     yieldAppCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    // ZH: 寬度不隨最長的程式名撐開 (否則整頁被推寬而裁切) | EN: don't widen to the longest app name (it pushed the page wider and clipped it)
+    yieldAppCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    yieldAppCombo->setMinimumContentsLength(8);
     QPushButton *yieldAddBtn    = new QPushButton("加入 (Add)");
     QPushButton *yieldRemoveBtn = new QPushButton("移除 (Remove)");
     QHBoxLayout *yieldEditRow = new QHBoxLayout;
@@ -486,6 +490,10 @@ void SettingsCenter::initSettingsInterface()
 
     // ZH: 底部彈性留白 | EN: Bottom spacer
     mainLayout->addStretch();
+
+    // ZH: 標籤 + 欄位放不下時，欄位換到標籤下一行 (避免撐寬捲動區) | EN: wrap a field below its label when the row doesn't fit
+    for (QFormLayout *form : scrollContent->findChildren<QFormLayout *>())
+        form->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
     // ZH: 索引籤 — 新增群組時在此加一行即可 | EN: index tabs — add one line here per new group
     const QList<QPair<QString, QGroupBox *>> sections = {
