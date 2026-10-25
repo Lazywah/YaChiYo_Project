@@ -7,7 +7,7 @@ Get-Process -Name YaChiYo_Project -ErrorAction SilentlyContinue | ForEach-Object
     Say "Stopping desktop pet (pid $($_.Id))"; Stop-Process -Id $_.Id -Force
 }
 
-$helpers = 'mouth_loopback.py', 'wakeword.py'
+$helpers = 'mouth_loopback.py', 'wakeword.py', 'note_receiver.py'
 Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe'" | ForEach-Object {
     $p = $_
     foreach ($h in $helpers) {

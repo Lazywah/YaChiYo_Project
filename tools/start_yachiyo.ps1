@@ -1,5 +1,6 @@
 # start_yachiyo.ps1 - one-click launcher for YaChiYo + Hermes voice assistant.
-# Starts: Hermes (classic conhost window), mouth sync, wake word, desktop pet.
+# Starts: Hermes (classic conhost window), mouth sync, wake word, phone note
+# receiver, desktop pet.
 # Helper scripts run windowless (pythonw); logs go to build\app\logs\.
 # Stop everything with stop_yachiyo.ps1.
 # NOTE: keep this file pure ASCII (PowerShell 5.1 misreads BOM-less UTF-8).
@@ -63,6 +64,16 @@ if (Test-PyScriptRunning 'wakeword.py') {
     Start-Process -FilePath $PyW -WorkingDirectory $Tools `
         -ArgumentList "-u `"$Tools\wakeword.py`" --window-title $Title --window-class ConsoleWindowClass --inject conhost" `
         -RedirectStandardOutput "$LogDir\wakeword.log" -RedirectStandardError "$LogDir\wakeword.err.log"
+}
+
+# 3b) Phone note receiver: binds the Tailscale IP only (exits if Tailscale is down).
+if (Test-PyScriptRunning 'note_receiver.py') {
+    Say 'note_receiver already running - skip.'
+} else {
+    Say 'Starting phone note receiver (Tailscale only)...'
+    Start-Process -FilePath $PyW -WorkingDirectory $Tools `
+        -ArgumentList "-u `"$Tools\note_receiver.py`"" `
+        -RedirectStandardOutput "$LogDir\note_receiver.log" -RedirectStandardError "$LogDir\note_receiver.err.log"
 }
 
 # 4) Desktop pet. Only this process gets PATH = Python313 -> msys64 Qt -> rest:
