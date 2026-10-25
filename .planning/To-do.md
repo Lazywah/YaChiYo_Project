@@ -101,10 +101,12 @@
 - 分工：喚醒 / 開 App 交給 iPhone 捷徑，思考交給電腦上的 Hermes（手機只傳話）；iOS 不能常駐收音、不能操作別的 App
 - [x] 「記一下」捷徑：聽寫 → 附加到備忘錄「隨手記」→ 通知（背面輕點 / 嘿 Siri）
 - [x] Hermes `api_server` 本機打通：`127.0.0.1:8642`、Bearer key 驗證、`X-Hermes-Session-Id` 延續對話、對話寫入 `state.db`（聊天室看得到）
-- [ ] 對外連線：`API_SERVER_HOST` 綁 Tailscale IP（勿用 0.0.0.0）+ Windows 防火牆開埠
-- [ ] 原型捷徑：語音快捷指令「八千代」→ 聽寫 → POST `/v1/chat/completions` → 朗讀回覆
+- [x] **定案路線：捷徑直連 Claude API + 電腦當信箱**（不經 iCloud）— 設定步驟見 `.planning/iphone_shortcut_setup.md`
+  - [x] 捷徑「八千代」：聽寫 → Claude API（`claude-haiku-5-5`）→ 朗讀 → 存手機 `inbox.txt` → 送電腦 → 成功就刪
+  - [x] `tools/note_receiver.py`：只綁 Tailscale IP `:39220`、Bearer token、只寫 `inbox.md` / 讀 `summary.md`（不碰 Hermes）
+  - [x] 防火牆規則「YaChiYo note receiver (Tailscale)」；隨 `start/stop_yachiyo.ps1` 啟停
+  - [x] 2026-10-26 端到端實測成功
 - [ ] 實測中文喚醒詞（iOS 18 語音快捷指令能否認「八千代」）
-- [ ] gateway 常駐（目前需手動 `hermes gateway run`）
-- [ ] （選）讓 Hermes 讀得到「隨手記」：捷徑同時 POST，或改存 iCloud Drive 文字檔
-- 替代路線：捷徑直連 Claude API（免電腦、外出可用），但沒有 Hermes 的工具 / 記憶 / 角色設定，金鑰存在手機上
+- [ ] Hermes 消化 `inbox.md` 進記憶，並寫 `summary.md`；捷徑送成功時 `GET /summary` 存手機、塞進 `system`
+- [ ] （選）走 Hermes `api_server` 讓手機能叫電腦做事（需 `API_SERVER_HOST` 綁 Tailscale IP、gateway 常駐）
 - 安全：入口必須驗證、`approvals: manual` 不放寬、不開公網；手機端不接 `/v1/runs`（持 key 可遠端核准危險指令）
