@@ -1,6 +1,6 @@
 # YaChiYo 桌寵專案 — 待實作功能清單
 
-> 最後更新：2026-10-24
+> 最後更新：2026-10-26
 > 標記：`[x]` 完成　`[~]` 部分完成　`[ ]` 未開始
 
 ---
@@ -96,3 +96,15 @@
 ## 16. 工具 AI 群架構 (Tool AIs) [ ]
 - 原構想：每個工具 AI 一個獨立 `*client` 模組（仿 `aiclient`，放 `src/modules/`），`PetConfig` 統一開關；右鍵選單擴充「AI 工具」子選單
 - **待重新評估**：上網 / 管家等工具能力目前改由 Hermes 的 toolset 提供（Item 5、6），桌寵端未必需要另寫 `*client`
+
+## 17. iPhone 語音入口 [~]
+- 分工：喚醒 / 開 App 交給 iPhone 捷徑，思考交給電腦上的 Hermes（手機只傳話）；iOS 不能常駐收音、不能操作別的 App
+- [x] 「記一下」捷徑：聽寫 → 附加到備忘錄「隨手記」→ 通知（背面輕點 / 嘿 Siri）
+- [x] Hermes `api_server` 本機打通：`127.0.0.1:8642`、Bearer key 驗證、`X-Hermes-Session-Id` 延續對話、對話寫入 `state.db`（聊天室看得到）
+- [ ] 對外連線：`API_SERVER_HOST` 綁 Tailscale IP（勿用 0.0.0.0）+ Windows 防火牆開埠
+- [ ] 原型捷徑：語音快捷指令「八千代」→ 聽寫 → POST `/v1/chat/completions` → 朗讀回覆
+- [ ] 實測中文喚醒詞（iOS 18 語音快捷指令能否認「八千代」）
+- [ ] gateway 常駐（目前需手動 `hermes gateway run`）
+- [ ] （選）讓 Hermes 讀得到「隨手記」：捷徑同時 POST，或改存 iCloud Drive 文字檔
+- 替代路線：捷徑直連 Claude API（免電腦、外出可用），但沒有 Hermes 的工具 / 記憶 / 角色設定，金鑰存在手機上
+- 安全：入口必須驗證、`approvals: manual` 不放寬、不開公網；手機端不接 `/v1/runs`（持 key 可遠端核准危險指令）
