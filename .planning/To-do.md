@@ -106,6 +106,7 @@
   - [x] `tools/note_receiver.py`：只綁 Tailscale IP `:39220`、Bearer token、只寫 `inbox.md` / 讀 `summary.md`（不碰 Hermes）
   - [x] 防火牆規則「YaChiYo note receiver (Tailscale)」；隨 `start/stop_yachiyo.ps1` 啟停
   - [x] 2026-10-26 端到端實測成功
+  - [ ] 開 App（回覆標記 `[開啟|App]` + 白名單「如果 → 打開 App」）、上網搜尋（`web_search` 伺服器工具）— 已寫入設定文件，待實測
 - [ ] 實測中文喚醒詞（iOS 18 語音快捷指令能否認「八千代」）
 - [ ] Hermes 消化 `inbox.md` 進記憶，並寫 `summary.md`；捷徑送成功時 `GET /summary` 存手機、塞進 `system`
 - [ ] （選）走 Hermes `api_server` 讓手機能叫電腦做事（需 `API_SERVER_HOST` 綁 Tailscale IP、gateway 常駐）
